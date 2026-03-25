@@ -261,44 +261,70 @@ def gen_docx():
 # ── STEPS ──
 def step_0():
     st.subheader("Krok 1: Dane jednostki")
+
+    # KRS fetch using st.form so button and input work together
     with st.container(border=True):
         st.markdown("**Pobierz dane z KRS**")
-        c1,c2=st.columns([3,1])
-        with c1: ki=st.text_input("Numer KRS",value=G("d_krs"),key="ki",placeholder="np. 0000123456")
-        with c2: st.write(""); fb=st.button("Pobierz",use_container_width=True,type="primary")
-        if fb and ki.strip():
-            with st.spinner("Laczenie z API KRS..."):
-                res=fetch_krs(ki)
-            if res.get("error"): st.error(res["error"])
+        krs_val = st.text_input("Wpisz numer KRS i nacisnij Enter lub kliknij Pobierz", 
+                                value=G("d_krs"), key="krs_fetch_field",
+                                placeholder="np. 0000640431")
+        fetch_btn = st.button("Pobierz dane z KRS", use_container_width=True, type="primary", key="krs_fetch_btn")
+        
+        if fetch_btn:
+            krs_to_fetch = krs_val.strip() if krs_val else ""
+            if not krs_to_fetch:
+                st.error("Wpisz numer KRS.")
             else:
-                if res.get("nazwa"): st.session_state.d_name=res["nazwa"]
-                if res.get("nip"): st.session_state.d_nip=res["nip"]
-                if res.get("regon"): st.session_state.d_regon=res["regon"]
-                if res.get("adres"): st.session_state.d_addr=res["adres"]
-                if res.get("krs"): st.session_state.d_krs=res["krs"]
-                if res.get("forma") and res["forma"] in ENTITY_FORM_KEYS: st.session_state.d_form=ENTITY_FORM_KEYS.index(res["forma"])
-                if res.get("rep"): st.session_state.d_ab=res["rep"]
-                if res.get("nazwa"):
-                    st.success(f"Pobrano: **{res.get('nazwa','')}**")
-                    st.rerun()
+                with st.spinner("Laczenie z API KRS..."):
+                    res = fetch_krs(krs_to_fetch)
+                if res.get("error"):
+                    st.error(res["error"])
                 else:
-                    st.warning("API zwrocilo odpowiedz, ale nie znaleziono danych podmiotu.")
+                    updated = []
+                    if res.get("nazwa"):
+                        st.session_state.d_name = res["nazwa"]
+                        updated.append(f"Nazwa: {res['nazwa']}")
+                    if res.get("nip"):
+                        st.session_state.d_nip = res["nip"]
+                        updated.append(f"NIP: {res['nip']}")
+                    if res.get("regon"):
+                        st.session_state.d_regon = res["regon"]
+                    if res.get("adres"):
+                        st.session_state.d_addr = res["adres"]
+                    if res.get("krs"):
+                        st.session_state.d_krs = res["krs"]
+                    if res.get("forma") and res["forma"] in ENTITY_FORM_KEYS:
+                        st.session_state.d_form = ENTITY_FORM_KEYS.index(res["forma"])
+                    if res.get("rep"):
+                        st.session_state.d_ab = res["rep"]
+                    if updated:
+                        st.success(f"Pobrano: {', '.join(updated)}")
+                        st.rerun()
+                    else:
+                        st.warning("API zwrocilo odpowiedz, ale nie znaleziono danych.")
+
     st.divider()
-    st.session_state.d_name=st.text_input("Nazwa jednostki",value=G("d_name"),key="wn")
-    fv=st.selectbox("Forma prawna",ENTITY_FORM_LABELS,index=G("d_form"),key="wf")
-    st.session_state.d_form=ENTITY_FORM_LABELS.index(fv) if fv in ENTITY_FORM_LABELS else 0
-    c1,c2=st.columns(2)
-    with c1: st.session_state.d_nip=st.text_input("NIP",value=G("d_nip"),key="wnip")
-    with c2: st.session_state.d_krs=st.text_input("KRS",value=G("d_krs"),key="wkrs")
-    c3,c4=st.columns(2)
-    with c3: st.session_state.d_regon=st.text_input("REGON",value=G("d_regon"),key="wreg")
-    with c4: st.session_state.d_addr=st.text_input("Adres",value=G("d_addr"),key="wadr")
+    st.session_state.d_name = st.text_input("Nazwa jednostki", value=G("d_name"), key="wn")
+    fv = st.selectbox("Forma prawna", ENTITY_FORM_LABELS, index=G("d_form"), key="wf")
+    st.session_state.d_form = ENTITY_FORM_LABELS.index(fv) if fv in ENTITY_FORM_LABELS else 0
+    c1, c2 = st.columns(2)
+    with c1:
+        st.session_state.d_nip = st.text_input("NIP", value=G("d_nip"), key="wnip")
+    with c2:
+        st.session_state.d_krs = st.text_input("KRS", value=G("d_krs"), key="wkrs")
+    c3, c4 = st.columns(2)
+    with c3:
+        st.session_state.d_regon = st.text_input("REGON", value=G("d_regon"), key="wreg")
+    with c4:
+        st.session_state.d_addr = st.text_input("Adres", value=G("d_addr"), key="wadr")
     st.markdown("**Rok obrotowy**")
-    c5,c6=st.columns(2)
-    with c5: st.session_state.d_fys=st.text_input("Poczatek (MM-DD)",value=G("d_fys"),key="wfys")
-    with c6: st.session_state.d_fye=st.text_input("Koniec (MM-DD)",value=G("d_fye"),key="wfye")
-    st.session_state.d_small=st.checkbox("Jednostka mala (art. 3 ust. 1c)",value=G("d_small"),key="wsm")
-    st.session_state.d_micro=st.checkbox("Jednostka mikro (art. 3 ust. 1a)",value=G("d_micro"),key="wmi")
+    c5, c6 = st.columns(2)
+    with c5:
+        st.session_state.d_fys = st.text_input("Poczatek (MM-DD)", value=G("d_fys"), key="wfys")
+    with c6:
+        st.session_state.d_fye = st.text_input("Koniec (MM-DD)", value=G("d_fye"), key="wfye")
+    st.session_state.d_small = st.checkbox("Jednostka mala (art. 3 ust. 1c)", value=G("d_small"), key="wsm")
+    st.session_state.d_micro = st.checkbox("Jednostka mikro (art. 3 ust. 1a)", value=G("d_micro"), key="wmi")
 
 def step_1():
     st.subheader("Krok 2: Ksiegi rachunkowe")

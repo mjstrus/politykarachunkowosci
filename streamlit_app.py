@@ -41,36 +41,80 @@ def fetch_krs(nr):
 
 def _parse(data,nr):
     res={"krs":nr}
-    root=data
-    for p in ["odppisPelnyOdpisBieliPodmiotu","dane"]:
-        if isinstance(root,dict) and p in root: root=root[p]
-    d1=root.get("dzial1",{}) if isinstance(root,dict) else {}
-    dp=d1.get("danePodmiotu",{})
-    idn=dp.get("identyfikatory",{})
-    adr=d1.get("siedzibaIAdres",{}).get("adres",{})
-    res["nazwa"]=dp.get("nazwa","")
-    res["nip"]=idn.get("nip","")
-    res["regon"]=idn.get("regon","")
-    parts=[]
-    if adr.get("ulica"):
-        n=adr.get("nrDomu","")
-        l=f"/{adr['nrLokalu']}" if adr.get("nrLokalu") else ""
-        parts.append(f"ul. {adr['ulica']} {n}{l}".strip())
-    km=" ".join(filter(None,[adr.get("kodPocztowy"),adr.get("miejscowosc")]))
-    if km: parts.append(km)
-    res["adres"]=", ".join(parts)
-    fp=dp.get("formaPrawna","")
-    if isinstance(fp,dict): fp=fp.get("nazwa","")
-    fl=fp.lower()
-    res["forma"]="sp_zoo" if "ograniczon" in fl else "ska" if "komandytowo-akcyjn" in fl else "sk" if "komandytow" in fl else "sa" if "akcyjn" in fl else "sj" if "jawn" in fl else "fundacja" if "fundacj" in fl else "stowarzyszenie" if "stowarzysz" in fl else ""
-    d2=root.get("dzial2",{}) if isinstance(root,dict) else {}
-    sk=d2.get("reprezentacja",{}).get("sklad",[])
-    if sk:
-        o=sk[0]; im=o.get("imiona",o.get("pierwszeImie","")); nz=o.get("nazwisko",""); fn=o.get("funkcja","")
-        rep=f"{im} {nz}".strip()
-        if fn: rep+=f" - {fn}"
-        res["rep"]=rep
-    else: res["rep"]=""
+
+    # Real KRS API structure: {"odpis": {"dane": {"dzial1": {...}, "dzial2": {...}}}}
+    root = data
+    if isinstance(root, dict) and "odpis" in root:
+        root = root["odpis"]
+    if isinstance(root, dict) and "dane" in root:
+        root = root["dane"]
+
+    d1 = root.get("dzial1", {}) if isinstance(root, dict) else {}
+    dp = d1.get("danePodmiotu", {})
+    idn = dp.get("identyfikatory", {})
+    siedziba = d1.get("siedzibaIAdres", {})
+    adr = siedziba.get("adres", {})
+
+    res["nazwa"] = dp.get("nazwa", "")
+    res["nip"] = idn.get("nip", "")
+    res["regon"] = idn.get("regon", "")
+
+    # Address - KRS uses uppercase field names
+    parts = []
+    ulica = adr.get("ulica", "")
+    # KRS sometimes prefixes with "UL. " already
+    if ulica:
+        nr_domu = adr.get("nrDomu", "")
+        nr_lok = adr.get("nrLokalu", "")
+        lok_part = f"/{nr_lok}" if nr_lok else ""
+        if ulica.upper().startswith("UL."):
+            parts.append(f"{ulica} {nr_domu}{lok_part}".strip())
+        else:
+            parts.append(f"ul. {ulica} {nr_domu}{lok_part}".strip())
+    km = " ".join(filter(None, [adr.get("kodPocztowy", ""), adr.get("miejscowosc", "")]))
+    if km:
+        parts.append(km)
+    res["adres"] = ", ".join(parts)
+
+    # Entity form - KRS returns full text like "SPOLKA Z OGRANICZONA ODPOWIEDZIALNOSCIA"
+    fp = dp.get("formaPrawna", "")
+    if isinstance(fp, dict):
+        fp = fp.get("nazwa", "")
+    fl = fp.lower()
+    res["forma"] = ("sp_zoo" if "ograniczon" in fl else
+                    "ska" if "komandytowo-akcyjn" in fl else
+                    "sk" if "komandytow" in fl else
+                    "sa" if "akcyjn" in fl else
+                    "sj" if "jawn" in fl else
+                    "fundacja" if "fundacj" in fl else
+                    "stowarzyszenie" if "stowarzysz" in fl else "")
+
+    # Representation - dzial2 > reprezentacja > sklad[]
+    # Names have nested structure: {"nazwisko": {"nazwiskoICzlon": "X"}, "imiona": {"imie": "Y"}}
+    d2 = root.get("dzial2", {}) if isinstance(root, dict) else {}
+    rep_data = d2.get("reprezentacja", {})
+    sklad = rep_data.get("sklad", [])
+    if sklad:
+        o = sklad[0]
+        # Extract name from nested dicts
+        nazwisko_obj = o.get("nazwisko", {})
+        imiona_obj = o.get("imiona", {})
+        if isinstance(nazwisko_obj, dict):
+            nz = nazwisko_obj.get("nazwiskoICzlon", "")
+        else:
+            nz = str(nazwisko_obj)
+        if isinstance(imiona_obj, dict):
+            im = imiona_obj.get("imie", "")
+        else:
+            im = str(imiona_obj)
+        fn = o.get("funkcjaWOrganie", o.get("funkcja", ""))
+        rep = f"{im} {nz}".strip()
+        if fn:
+            rep += f" - {fn}"
+        res["rep"] = rep
+    else:
+        res["rep"] = ""
+
     return res
 
 # ── DOCX ──
@@ -234,7 +278,11 @@ def step_0():
                 if res.get("krs"): st.session_state.d_krs=res["krs"]
                 if res.get("forma") and res["forma"] in ENTITY_FORM_KEYS: st.session_state.d_form=ENTITY_FORM_KEYS.index(res["forma"])
                 if res.get("rep"): st.session_state.d_ab=res["rep"]
-                st.success(f"Pobrano: **{res.get('nazwa','')}**"); st.rerun()
+                if res.get("nazwa"):
+                    st.success(f"Pobrano: **{res.get('nazwa','')}**")
+                    st.rerun()
+                else:
+                    st.warning("API zwrocilo odpowiedz, ale nie znaleziono danych podmiotu.")
     st.divider()
     st.session_state.d_name=st.text_input("Nazwa jednostki",value=G("d_name"),key="wn")
     fv=st.selectbox("Forma prawna",ENTITY_FORM_LABELS,index=G("d_form"),key="wf")

@@ -28,9 +28,14 @@ def fetch_krs(nr):
     nr=nr.strip().replace("-","").replace(" ","")
     if not nr.isdigit(): return {"error":"Numer KRS musi zawierac tylko cyfry."}
     nr=nr.zfill(10)
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (compatible; PolitikaRachunkowosci/1.0)"
+    }
+    url = f"https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/{nr}"
     for reg in ["P","S"]:
         try:
-            r=requests.get(f"https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/{nr}?rejestr={reg}&format=json",timeout=15)
+            r=requests.get(url, params={"rejestr": reg, "format": "json"}, headers=headers, timeout=20)
             if r.status_code==200: return _parse(r.json(),nr)
             elif r.status_code==404: continue
             else: return {"error":f"HTTP {r.status_code}"}

@@ -278,9 +278,22 @@ def step_0():
     
     if st.button("Pobierz dane z KRS", use_container_width=True, type="primary"):
         val = st.session_state.krs_input_val.strip()
-        if val:
+if val:
             st.write(f"Szukam KRS: {val}")
-            res = fetch_krs(val)
+            try:
+                r = requests.get(f"https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/{val.zfill(10)}",
+                                 params={"rejestr":"P","format":"json"},
+                                 headers={"Accept":"application/json","User-Agent":"Mozilla/5.0"},
+                                 timeout=20)
+                st.write(f"Status: {r.status_code}")
+                if r.status_code == 200:
+                    res = _parse(r.json(), val.zfill(10))
+                    st.write(f"Nazwa: {res.get('nazwa','brak')}")
+                else:
+                    res = {"error": f"HTTP {r.status_code}"}
+            except Exception as e:
+                st.write(f"BLAD: {type(e).__name__}: {e}")
+                res = {"error": str(e)}
             st.write(f"Wynik: {res.get('nazwa', res.get('error', 'brak'))}")
             if res.get("error"):
                 st.error(res["error"])

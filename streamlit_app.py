@@ -266,7 +266,20 @@ def gen_docx():
 # ── STEPS ──
 def step_0():
     st.subheader("Krok 1: Dane jednostki")
-
+    if st.button("TEST POLACZENIA", key="test_btn"):
+        try:
+            r = requests.get("https://httpbin.org/get", timeout=10)
+            st.write(f"httpbin status: {r.status_code}")
+            r2 = requests.get("https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000640431", 
+                             params={"rejestr":"P","format":"json"},
+                             headers={"Accept":"application/json","User-Agent":"Mozilla/5.0"},
+                             timeout=20)
+            st.write(f"KRS API status: {r2.status_code}")
+            if r2.status_code == 200:
+                data = r2.json()
+                st.write(f"Klucze: {list(data.keys())}")
+        except Exception as e:
+            st.error(f"Blad: {type(e).__name__}: {e}")
     st.markdown("**Pobierz dane z KRS**")
     with st.form("krs_form"):
         krs_val = st.text_input("Numer KRS", placeholder="np. 0000640431")

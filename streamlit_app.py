@@ -266,50 +266,53 @@ def gen_docx():
 # ── STEPS ──
 def step_0():
     st.subheader("Krok 1: Dane jednostki")
-
     st.markdown("**Pobierz dane z KRS**")
     if "krs_input_val" not in st.session_state:
         st.session_state.krs_input_val = ""
-    
     def _on_krs_change():
         st.session_state.krs_input_val = st.session_state._krs_widget
-    
     st.text_input("Numer KRS", placeholder="np. 0000640431", key="_krs_widget", on_change=_on_krs_change)
-    
     if st.button("Pobierz dane z KRS", use_container_width=True, type="primary"):
         val = st.session_state.krs_input_val.strip()
-if val:
-            st.write(f"Szukam KRS: {val}")
+        if val:
             try:
-                r = requests.get(f"https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/{val.zfill(10)}",
-                                 params={"rejestr":"P","format":"json"},
-                                 headers={"Accept":"application/json","User-Agent":"Mozilla/5.0"},
-                                 timeout=20)
-                st.write(f"Status: {r.status_code}")
+                r = requests.get(
+                    f"https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/{val.zfill(10)}",
+                    params={"rejestr": "P", "format": "json"},
+                    headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
+                    timeout=20
+                )
                 if r.status_code == 200:
                     res = _parse(r.json(), val.zfill(10))
-                    st.write(f"Nazwa: {res.get('nazwa','brak')}")
+                    if res.get("nazwa"):
+                        st.session_state["krs_data"] = res
+                        st.rerun()
+                    else:
+                        st.warning("Nie znaleziono danych.")
+                elif r.status_code == 404:
+                    r2 = requests.get(
+                        f"https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/{val.zfill(10)}",
+                        params={"rejestr": "S", "format": "json"},
+                        headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
+                        timeout=20
+                    )
+                    if r2.status_code == 200:
+                        res = _parse(r2.json(), val.zfill(10))
+                        if res.get("nazwa"):
+                            st.session_state["krs_data"] = res
+                            st.rerun()
+                    else:
+                        st.error(f"Nie znaleziono KRS {val}")
                 else:
-                    res = {"error": f"HTTP {r.status_code}"}
+                    st.error(f"Blad API: HTTP {r.status_code}")
             except Exception as e:
-                st.write(f"BLAD: {type(e).__name__}: {e}")
-                res = {"error": str(e)}
-            st.write(f"Wynik: {res.get('nazwa', res.get('error', 'brak'))}")
-            if res.get("error"):
-                st.error(res["error"])
-            elif res.get("nazwa"):
-                st.session_state["krs_data"] = res
-                st.rerun()
+                st.error(f"Blad: {type(e).__name__}: {e}")
         else:
             st.warning("Wpisz numer KRS.")
-
     krs = st.session_state.get("krs_data", {})
-
     st.divider()
     st.session_state.d_name = st.text_input("Nazwa jednostki", value=krs.get("nazwa", G("d_name")), key="wn")
-    fv = st.selectbox("Forma prawna", ENTITY_FORM_LABELS,
-                       index=ENTITY_FORM_KEYS.index(krs["forma"]) if krs.get("forma") and krs["forma"] in ENTITY_FORM_KEYS else G("d_form"),
-                       key="wf")
+    fv = st.selectbox("Forma prawna", ENTITY_FORM_LABELS, index=ENTITY_FORM_KEYS.index(krs["forma"]) if krs.get("forma") and krs["forma"] in ENTITY_FORM_KEYS else G("d_form"), key="wf")
     st.session_state.d_form = ENTITY_FORM_LABELS.index(fv) if fv in ENTITY_FORM_LABELS else 0
     c1, c2 = st.columns(2)
     with c1:

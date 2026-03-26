@@ -268,22 +268,25 @@ def step_0():
     st.subheader("Krok 1: Dane jednostki")
 
     st.markdown("**Pobierz dane z KRS**")
-    krs_val = st.text_input("Numer KRS", placeholder="np. 0000640431", key="krs_in")
-    if st.button("Pobierz dane z KRS", use_container_width=True, type="primary", key="krs_btn"):
-        if krs_val and krs_val.strip():
-            try:
-                with st.spinner("Pobieranie z API KRS..."):
-                    res = fetch_krs(krs_val.strip())
-                if res.get("error"):
-                    st.error(f"Blad: {res['error']}")
-                elif res.get("nazwa"):
-                    st.session_state["krs_data"] = res
-                    st.success("Dane pobrane z KRS!")
-                    st.rerun()
-                else:
-                    st.warning("Nie znaleziono danych.")
-            except Exception as e:
-                st.error(f"Wyjatek: {str(e)}")
+    if "krs_input_val" not in st.session_state:
+        st.session_state.krs_input_val = ""
+    
+    def _on_krs_change():
+        st.session_state.krs_input_val = st.session_state._krs_widget
+    
+    st.text_input("Numer KRS", placeholder="np. 0000640431", key="_krs_widget", on_change=_on_krs_change)
+    
+    if st.button("Pobierz dane z KRS", use_container_width=True, type="primary"):
+        val = st.session_state.krs_input_val.strip()
+        if val:
+            st.write(f"Szukam KRS: {val}")
+            res = fetch_krs(val)
+            st.write(f"Wynik: {res.get('nazwa', res.get('error', 'brak'))}")
+            if res.get("error"):
+                st.error(res["error"])
+            elif res.get("nazwa"):
+                st.session_state["krs_data"] = res
+                st.rerun()
         else:
             st.warning("Wpisz numer KRS.")
 

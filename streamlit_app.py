@@ -267,29 +267,28 @@ def gen_docx():
 def step_0():
     st.subheader("Krok 1: Dane jednostki")
 
-    with st.container(border=True):
-        st.markdown("**Pobierz dane z KRS**")
-        krs_val = st.text_input("Numer KRS", placeholder="np. 0000640431", key="krs_fetch_field")
+    st.markdown("**Pobierz dane z KRS**")
+    with st.form("krs_form"):
+        krs_val = st.text_input("Numer KRS", placeholder="np. 0000640431")
+        submitted = st.form_submit_button("Pobierz dane z KRS", use_container_width=True, type="primary")
 
-        if st.button("Pobierz dane z KRS", use_container_width=True, type="primary", key="krs_fetch_btn"):
-            if krs_val and krs_val.strip():
-                with st.spinner("Pobieranie z API KRS Ministerstwa Sprawiedliwosci..."):
-                    try:
-                        res = fetch_krs(krs_val.strip())
-                        if res.get("error"):
-                            st.error(f"Blad: {res['error']}")
-                        elif res.get("nazwa"):
-                            st.session_state["krs_data"] = res
-                            st.success("Dane pobrane z KRS!")
-                            st.rerun()
-                        else:
-                            st.warning("Nie znaleziono danych podmiotu.")
-                    except Exception as e:
-                        st.error(f"Wyjatek: {str(e)}")
-            else:
-                st.warning("Wpisz numer KRS.")
+    if submitted and krs_val and krs_val.strip():
+        with st.spinner("Pobieranie z API KRS..."):
+            try:
+                res = fetch_krs(krs_val.strip())
+                if res.get("error"):
+                    st.error(f"Blad: {res['error']}")
+                elif res.get("nazwa"):
+                    st.session_state["krs_data"] = res
+                    st.success("Dane pobrane z KRS!")
+                    st.rerun()
+                else:
+                    st.warning("Nie znaleziono danych podmiotu.")
+            except Exception as e:
+                st.error(f"Wyjatek: {str(e)}")
+    elif submitted:
+        st.warning("Wpisz numer KRS.")
 
-    # Apply KRS data to fields if available
     krs = st.session_state.get("krs_data", {})
 
     st.divider()
@@ -316,8 +315,6 @@ def step_0():
         st.session_state.d_fye = st.text_input("Koniec (MM-DD)", value=G("d_fye"), key="wfye")
     st.session_state.d_small = st.checkbox("Jednostka mala (art. 3 ust. 1c)", value=G("d_small"), key="wsm")
     st.session_state.d_micro = st.checkbox("Jednostka mikro (art. 3 ust. 1a)", value=G("d_micro"), key="wmi")
-
-    # Store approved_by from KRS rep if available
     if krs.get("rep") and not G("d_ab"):
         st.session_state.d_ab = krs["rep"]
 

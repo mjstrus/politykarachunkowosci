@@ -269,59 +269,45 @@ def step_0():
 
     with st.container(border=True):
         st.markdown("**Pobierz dane z KRS**")
-        
-        tab1, tab2 = st.tabs(["Pobierz z API", "Wgraj plik JSON"])
-        
-        with tab1:
-            krs_val = st.text_input("Numer KRS", value=G("d_krs"), key="krs_fetch_field",
-                                    placeholder="np. 0000640431")
-            fetch_btn = st.button("Pobierz dane z KRS", use_container_width=True, 
-                                  type="primary", key="krs_fetch_btn")
-            if fetch_btn:
-                krs_to_fetch = krs_val.strip() if krs_val else ""
-                if not krs_to_fetch:
-                    st.error("Wpisz numer KRS.")
-                else:
+        krs_val = st.text_input("Numer KRS", placeholder="np. 0000640431", key="krs_fetch_field")
+
+        if st.button("Pobierz dane z KRS", use_container_width=True, type="primary", key="krs_fetch_btn"):
+            if krs_val and krs_val.strip():
+                with st.spinner("Pobieranie z API KRS Ministerstwa Sprawiedliwosci..."):
                     try:
-                        with st.spinner("Laczenie z API KRS..."):
-                            res = fetch_krs(krs_to_fetch)
+                        res = fetch_krs(krs_val.strip())
                         if res.get("error"):
                             st.error(f"Blad: {res['error']}")
-                            st.info("Jezeli API KRS nie odpowiada, uzyj zakladki 'Wgraj plik JSON' - pobierz JSON z przegladarki: https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/NUMER_KRS?rejestr=P&format=json")
+                        elif res.get("nazwa"):
+                            st.session_state["krs_data"] = res
+                            st.success("Dane pobrane z KRS!")
+                            st.rerun()
                         else:
-                            _apply_krs_result(res)
+                            st.warning("Nie znaleziono danych podmiotu.")
                     except Exception as e:
                         st.error(f"Wyjatek: {str(e)}")
-                        st.info("Uzyj zakladki 'Wgraj plik JSON' jako alternatywe.")
-        
-        with tab2:
-            st.caption("Pobierz plik JSON z przegladarki (wejdz na link ponizej, zapisz strone jako plik):")
-            st.code("https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/NUMER_KRS?rejestr=P&format=json", language=None)
-            uploaded = st.file_uploader("Wgraj plik JSON z KRS", type=["json"], key="krs_json_upload")
-            if uploaded is not None:
-                try:
-                    import json
-                    data = json.load(uploaded)
-                    krs_num = data.get("odpis", {}).get("naglowekA", {}).get("numerKRS", "")
-                    res = _parse(data, krs_num)
-                    _apply_krs_result(res)
-                except Exception as e:
-                    st.error(f"Blad parsowania pliku: {str(e)}")
+            else:
+                st.warning("Wpisz numer KRS.")
+
+    # Apply KRS data to fields if available
+    krs = st.session_state.get("krs_data", {})
 
     st.divider()
-    st.session_state.d_name = st.text_input("Nazwa jednostki", value=G("d_name"), key="wn")
-    fv = st.selectbox("Forma prawna", ENTITY_FORM_LABELS, index=G("d_form"), key="wf")
+    st.session_state.d_name = st.text_input("Nazwa jednostki", value=krs.get("nazwa", G("d_name")), key="wn")
+    fv = st.selectbox("Forma prawna", ENTITY_FORM_LABELS,
+                       index=ENTITY_FORM_KEYS.index(krs["forma"]) if krs.get("forma") and krs["forma"] in ENTITY_FORM_KEYS else G("d_form"),
+                       key="wf")
     st.session_state.d_form = ENTITY_FORM_LABELS.index(fv) if fv in ENTITY_FORM_LABELS else 0
     c1, c2 = st.columns(2)
     with c1:
-        st.session_state.d_nip = st.text_input("NIP", value=G("d_nip"), key="wnip")
+        st.session_state.d_nip = st.text_input("NIP", value=krs.get("nip", G("d_nip")), key="wnip")
     with c2:
-        st.session_state.d_krs = st.text_input("KRS", value=G("d_krs"), key="wkrs")
+        st.session_state.d_krs = st.text_input("KRS", value=krs.get("krs", G("d_krs")), key="wkrs")
     c3, c4 = st.columns(2)
     with c3:
-        st.session_state.d_regon = st.text_input("REGON", value=G("d_regon"), key="wreg")
+        st.session_state.d_regon = st.text_input("REGON", value=krs.get("regon", G("d_regon")), key="wreg")
     with c4:
-        st.session_state.d_addr = st.text_input("Adres", value=G("d_addr"), key="wadr")
+        st.session_state.d_addr = st.text_input("Adres", value=krs.get("adres", G("d_addr")), key="wadr")
     st.markdown("**Rok obrotowy**")
     c5, c6 = st.columns(2)
     with c5:
@@ -331,30 +317,9 @@ def step_0():
     st.session_state.d_small = st.checkbox("Jednostka mala (art. 3 ust. 1c)", value=G("d_small"), key="wsm")
     st.session_state.d_micro = st.checkbox("Jednostka mikro (art. 3 ust. 1a)", value=G("d_micro"), key="wmi")
 
-
-def _apply_krs_result(res):
-    """Apply parsed KRS data to session state."""
-    updated = []
-    if res.get("nazwa"):
-        st.session_state.d_name = res["nazwa"]
-        updated.append(res["nazwa"])
-    if res.get("nip"):
-        st.session_state.d_nip = res["nip"]
-    if res.get("regon"):
-        st.session_state.d_regon = res["regon"]
-    if res.get("adres"):
-        st.session_state.d_addr = res["adres"]
-    if res.get("krs"):
-        st.session_state.d_krs = res["krs"]
-    if res.get("forma") and res["forma"] in ENTITY_FORM_KEYS:
-        st.session_state.d_form = ENTITY_FORM_KEYS.index(res["forma"])
-    if res.get("rep"):
-        st.session_state.d_ab = res["rep"]
-    if updated:
-        st.success(f"Pobrano: **{', '.join(updated)}**")
-        st.rerun()
-    else:
-        st.warning("Nie udalo sie wyciagnac danych z odpowiedzi.")
+    # Store approved_by from KRS rep if available
+    if krs.get("rep") and not G("d_ab"):
+        st.session_state.d_ab = krs["rep"]
 
 def step_1():
     st.subheader("Krok 2: Ksiegi rachunkowe")

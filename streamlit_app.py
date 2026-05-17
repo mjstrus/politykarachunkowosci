@@ -38,7 +38,11 @@ for k, v in dict(d_name="", d_form=0, d_nip="", d_krs="", d_regon="", d_addr="",
                   d_dp="Elektroniczna i fizyczna", d_ay=5, d_bk="Codziennie", d_ac=True,
                   d_rp="", d_rev="Zasada memorialowa", d_ls="Wg przepisow bilansowych",
                   d_prov=True, d_dt=True, d_cf="Metoda posrednia",
-                  d_adate=date.today(), d_edate=date.today(), d_ab="").items():
+                  d_adate=date.today(), d_edate=date.today(), d_ab="",
+                  d_ksef=True, d_ksef_moment="Data wystawienia w KSeF",
+                  d_ksef_korekty="Nota korygujaca w KSeF",
+                  d_ksef_archiwum="Wylacznie w KSeF",
+                  d_ksef_system="Zintegrowany z systemem FK").items():
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -442,6 +446,38 @@ def gen_docx():
     P(f"3. System informatyczny: {sf}.")
     P("4. Opis systemu - Zalacznik nr 2.")
 
+    if G("d_ksef"):
+        doc.add_heading("II.B Krajowy System e-Faktur (KSeF)", level=2)
+        P("1. Jednostka uczestniczy w Krajowym Systemie e-Faktur (KSeF) zgodnie z ustawa z dnia 29 pazdziernika 2021 r. o zmianie ustawy o podatku od towarow i uslug oraz niektorych innych ustaw. Od 1 lutego 2026 r. KSeF jest obowiazkowy dla wszystkich czynnych podatnikow VAT.")
+        P("2. Faktury sprzedazowe wystawiane sa wylacznie w formie ustrukturyzowanej (FA/2) i przesylane do KSeF. Numer KSeF nadany przez system stanowi unikatowy identyfikator faktury.")
+        P("3. Faktury zakupowe otrzymywane sa za posrednictwem KSeF. Weryfikacja poprawnosci faktury nastepuje po jej pobraniu z repozytorium KSeF.")
+
+        ksef_mom = G("d_ksef_moment")
+        if "wystawienia" in ksef_mom:
+            P("4. Moment ujecia faktury w ksiegach rachunkowych: faktura ujmowana jest pod data wystawienia w KSeF, o ile data ta jest tozszama z data operacji gospodarczej. W przypadku rozbiesznosci - pod data operacji gospodarczej z adnotacja o numerze KSeF.")
+        elif "operacji" in ksef_mom:
+            P("4. Moment ujecia faktury w ksiegach rachunkowych: faktura ujmowana jest pod data operacji gospodarczej (data dostawy towaru lub wykonania uslugi), niezaleznie od daty wystawienia w KSeF.")
+        else:
+            P("4. Moment ujecia faktury w ksiegach rachunkowych: faktura ujmowana jest pod data otrzymania (pobrania) z KSeF.")
+
+        ksef_kor = G("d_ksef_korekty")
+        if "Nota" in ksef_kor:
+            P("5. Faktury korygujace: korekty danych formalnych realizowane sa w formie not korygujacych przesylanych przez KSeF. Korekty wartosciowe - w formie faktur korygujacych z odniesieniem do numeru KSeF faktury pierwotnej.")
+        elif "zbiorcza" in ksef_kor:
+            P("5. Faktury korygujace: stosowane sa korekty zbiorcze za okresy rozliczeniowe, przesylane przez KSeF z odniesieniem do okresu i kontrahenta.")
+        else:
+            P("5. Faktury korygujace: kazda korekta wystawiana jest jako odrebna faktura korygujaca w KSeF z odniesieniem do numeru KSeF faktury pierwotnej.")
+
+        ksef_sys = G("d_ksef_system")
+        if "Zintegrowany" in ksef_sys:
+            P("6. Integracja z systemem ksiegowym: system FK jednostki jest zintegrowany z KSeF poprzez API. Faktury sprzedazowe generowane sa automatycznie z systemu FK i przesylane do KSeF. Faktury zakupowe importowane sa automatycznie z KSeF do systemu FK.")
+        elif "Polautomatyczny" in ksef_sys:
+            P("6. Integracja z systemem ksiegowym: faktury eksportowane/importowane sa w formacie XML (schemat FA/2) miedzy systemem FK a KSeF. Proces wymaga recznego uruchomienia importu/eksportu.")
+        else:
+            P("6. Integracja z systemem ksiegowym: dane z faktur KSeF wprowadzane sa recznie do systemu FK na podstawie podgladu faktury w repozytorium KSeF.")
+
+        P("7. Mapowanie JPK: numer KSeF przypisywany jest do kazdego zapisu ksiegowego dotyczacego faktury, umozliwiajac pelna identyfikowalnosc na potrzeby JPK_VAT i JPK_CIT.")
+
     doc.add_heading("III. Metody wyceny aktywow i pasywow", level=1)
     dm = {"Metoda liniowa": "liniowa", "Metoda degresywna": "degresywna", "Jednorazowa": "jednorazowo"}
     P(f"1. ST powyzej {thr} PLN - amortyzacja {dm.get(G('d_dep'), G('d_dep'))}.")
@@ -471,6 +507,16 @@ def gen_docx():
     P(f"1. Archiwizacja: {G('d_ay')} lat (art. 74 UoR).")
     bkm = {"Codziennie": "codzienna", "Co tydzien": "tygodniowa", "Co miesiac": "miesieczna"}
     P(f"2. Kopie zapasowe: {bkm.get(G('d_bk'), G('d_bk'))}.")
+
+    if G("d_ksef"):
+        ksef_arch = G("d_ksef_archiwum")
+        if "Wylacznie" in ksef_arch:
+            P("3. Archiwizacja faktur KSeF: faktury ustrukturyzowane przechowywane sa wylacznie w repozytorium KSeF prowadzonym przez Ministerstwo Finansow. Repozytorium KSeF spelnia wymogi art. 73 i 74 UoR w zakresie trwalosci zapisu i ochrony przed modyfikacja. Jednostka nie prowadzi rownoleglego archiwum faktur.")
+        elif "systemie FK" in ksef_arch and "nosnikach" not in ksef_arch:
+            P("3. Archiwizacja faktur KSeF: faktury ustrukturyzowane przechowywane sa rownolegle w repozytorium KSeF oraz w systemie FK jednostki. System FK przechowuje kopie faktur w formacie XML (schemat FA/2) wraz z numerem KSeF.")
+        else:
+            P("3. Archiwizacja faktur KSeF: faktury ustrukturyzowane przechowywane sa w trzech lokalizacjach: repozytorium KSeF, system FK jednostki oraz na nosnikach zapasowych (zgodnie z procedura backupu). Zapewnia to pelna redundancje i ciaglosc dostepu do dokumentow.")
+        P("4. Okres przechowywania faktur KSeF: zgodnie z art. 74 UoR oraz art. 112 ustawy o VAT - co najmniej 5 lat, liczone od konca roku kalendarzowego, w ktorym uplynql termin platnosci podatku.")
 
     doc.add_heading("VII. Zasady dodatkowe", level=1)
     P("1. Przychody: zasada memorialowa." if "memorialowa" in G("d_rev") else "1. Przychody: zasada kasowa.")
@@ -551,6 +597,47 @@ def step_1():
         st.session_state.d_sv = st.text_input("Wersja", value=G("d_sv"), key="wsv")
     with c2:
         st.session_state.d_sp = st.text_input("Producent", value=G("d_sp"), key="wsp")
+
+    st.markdown("---")
+    st.markdown("### Krajowy System e-Faktur (KSeF)")
+    st.caption("Od 2026 r. KSeF jest obowiazkowy. Okresl zasady obiegu faktur ustrukturyzowanych.")
+
+    st.session_state.d_ksef = st.checkbox("Jednostka korzysta z KSeF (obowiazkowe od 2026)",
+                                           value=G("d_ksef"), key="wksef")
+
+    if st.session_state.d_ksef:
+        st.session_state.d_ksef_moment = st.radio(
+            "Moment ujecia faktury w ksiegach",
+            ["Data wystawienia w KSeF",
+             "Data operacji gospodarczej (dostawa/usluga)",
+             "Data otrzymania faktury w KSeF"],
+            key="wksef_mom",
+            help="Okresl, ktora data jest podstawa ujecia faktury w ksiegach rachunkowych."
+        )
+
+        st.session_state.d_ksef_korekty = st.radio(
+            "Obsługa faktur korygujacych",
+            ["Nota korygujaca w KSeF",
+             "Faktura korygujaca z odniesieniem do faktury pierwotnej",
+             "Korekta zbiorcza za okres rozliczeniowy"],
+            key="wksef_kor"
+        )
+
+        st.session_state.d_ksef_archiwum = st.radio(
+            "Archiwizacja faktur",
+            ["Wylacznie w KSeF (repozytorium MF spelnia wymog archiwizacji)",
+             "Rownolegle w KSeF i w systemie FK jednostki",
+             "Rownolegle w KSeF, systemie FK i na nosnikach zapasowych"],
+            key="wksef_arch"
+        )
+
+        st.session_state.d_ksef_system = st.radio(
+            "Integracja KSeF z systemem ksiegowym",
+            ["Zintegrowany z systemem FK (automatyczny import/eksport)",
+             "Polautomatyczny (import plikow XML z KSeF)",
+             "Reczny (wprowadzanie na podstawie faktur z KSeF)"],
+            key="wksef_sys"
+        )
 
 
 def step_2():

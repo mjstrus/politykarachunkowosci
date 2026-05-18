@@ -380,154 +380,694 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════
 
 def gen_docx():
+    """Generuje profesjonalnie sformatowany dokument Polityki Rachunkowości."""
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+
+    # Polish quote characters via unicode escapes (safe in Python strings)
+    LQ = "\u201E"  # „
+    RQ = "\u201D"  # "
+
     doc = Document()
-    sec = doc.sections[0]; sec.page_width = Cm(21); sec.page_height = Cm(29.7)
-    sec.top_margin = Cm(2.5); sec.bottom_margin = Cm(2.5); sec.left_margin = Cm(2.5); sec.right_margin = Cm(2)
-    ns = doc.styles["Normal"]; ns.font.name = "Arial"; ns.font.size = Pt(11)
-    ns.paragraph_format.space_after = Pt(6); ns.paragraph_format.line_spacing = 1.15
-    for lv, (sz, cl) in {0: (16, "1A3C5E"), 1: (13, "2B5E8C"), 2: (11, "3B6B4F")}.items():
-        h = doc.styles[f"Heading {lv+1}"]; h.font.name = "Arial"; h.font.size = Pt(sz)
-        h.font.bold = True; h.font.color.rgb = RGBColor.from_string(cl)
-        h.paragraph_format.space_before = Pt(18 if lv == 0 else 12); h.paragraph_format.space_after = Pt(8)
+    sec = doc.sections[0]
+    sec.page_width = Cm(21)
+    sec.page_height = Cm(29.7)
+    sec.top_margin = Cm(2.5)
+    sec.bottom_margin = Cm(2.5)
+    sec.left_margin = Cm(2.5)
+    sec.right_margin = Cm(2)
+
+    # Style normalny
+    ns = doc.styles["Normal"]
+    ns.font.name = "Calibri"
+    ns.font.size = Pt(11)
+    ns.paragraph_format.space_after = Pt(6)
+    ns.paragraph_format.line_spacing = 1.35
+    ns.paragraph_format.first_line_indent = Cm(0.5)
+
+    # Style nagłówków
+    for lv, (sz, cl) in {0: (18, "1A3C5E"), 1: (14, "2B5E8C"), 2: (12, "3B6B4F")}.items():
+        h = doc.styles[f"Heading {lv+1}"]
+        h.font.name = "Calibri"
+        h.font.size = Pt(sz)
+        h.font.bold = True
+        h.font.color.rgb = RGBColor.from_string(cl)
+        h.paragraph_format.space_before = Pt(22 if lv == 0 else 14)
+        h.paragraph_format.space_after = Pt(10)
+        h.paragraph_format.first_line_indent = Cm(0)
+        h.paragraph_format.keep_with_next = True
+
+    # Nagłówek strony
     hp = sec.header.paragraphs[0] if sec.header.paragraphs else sec.header.add_paragraph()
     hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    hr = hp.add_run(f"Polityka Rachunkowosci - {G('d_name')}"); hr.font.size = Pt(8)
-    hr.font.color.rgb = RGBColor(153, 153, 153); hr.font.italic = True
+    hr = hp.add_run("Polityka Rachunkowo\u015bci \u2014 " + G("d_name"))
+    hr.font.size = Pt(9)
+    hr.font.color.rgb = RGBColor(120, 120, 120)
+    hr.font.italic = True
+    hr.font.name = "Calibri"
+
+    # Stopka z numeracją
     fp = sec.footer.paragraphs[0] if sec.footer.paragraphs else sec.footer.add_paragraph()
     fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    rf = fp.add_run("Strona "); rf.font.size = Pt(8); rf.font.color.rgb = RGBColor(153, 153, 153)
-    rp = fp.add_run(); rp.font.size = Pt(8)
-    f1 = OxmlElement("w:fldChar"); f1.set(qn("w:fldCharType"), "begin")
-    it = OxmlElement("w:instrText"); it.set(qn("xml:space"), "preserve"); it.text = " PAGE "
-    f2 = OxmlElement("w:fldChar"); f2.set(qn("w:fldCharType"), "end")
-    rp._r.append(f1); rp._r.append(it); rp._r.append(f2)
+    rf = fp.add_run("Strona ")
+    rf.font.size = Pt(9)
+    rf.font.color.rgb = RGBColor(120, 120, 120)
+    rf.font.name = "Calibri"
+    rp = fp.add_run()
+    rp.font.size = Pt(9)
+    rp.font.name = "Calibri"
+    f1 = OxmlElement("w:fldChar")
+    f1.set(qn("w:fldCharType"), "begin")
+    it = OxmlElement("w:instrText")
+    it.set(qn("xml:space"), "preserve")
+    it.text = " PAGE "
+    f2 = OxmlElement("w:fldChar")
+    f2.set(qn("w:fldCharType"), "end")
+    rp._r.append(f1)
+    rp._r.append(it)
+    rp._r.append(f2)
 
-    def P(t, b=False):
-        pp = doc.add_paragraph(); r = pp.add_run(t); r.bold = b; return pp
+    # Pomocnicze funkcje
+    def P(t, b=False, indent=True):
+        pp = doc.add_paragraph()
+        if not indent:
+            pp.paragraph_format.first_line_indent = Cm(0)
+        r = pp.add_run(t)
+        r.bold = b
+        r.font.name = "Calibri"
+        return pp
+
+    def PJ(t, b=False, indent=True):
+        pp = doc.add_paragraph()
+        pp.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        if not indent:
+            pp.paragraph_format.first_line_indent = Cm(0)
+        r = pp.add_run(t)
+        r.bold = b
+        r.font.name = "Calibri"
+        return pp
+
     def PC(t, sz=11, b=False, i=False, c=None):
-        pp = doc.add_paragraph(); pp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        r = pp.add_run(t); r.font.size = Pt(sz); r.bold = b; r.font.italic = i
-        if c: r.font.color.rgb = RGBColor.from_string(c)
+        pp = doc.add_paragraph()
+        pp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        pp.paragraph_format.first_line_indent = Cm(0)
+        r = pp.add_run(t)
+        r.font.size = Pt(sz)
+        r.bold = b
+        r.font.italic = i
+        r.font.name = "Calibri"
+        if c:
+            r.font.color.rgb = RGBColor.from_string(c)
 
-    efi = G("d_form"); efk = ENTITY_FORM_KEYS[efi] if isinstance(efi, int) and efi < len(ENTITY_FORM_KEYS) else ""
+    def add_table(headers, rows, col_widths=None):
+        t = doc.add_table(rows=1 + len(rows), cols=len(headers))
+        t.alignment = WD_TABLE_ALIGNMENT.CENTER
+        t.autofit = False
+
+        for i, h in enumerate(headers):
+            cell = t.rows[0].cells[i]
+            cell.text = ""
+            p = cell.paragraphs[0]
+            p.paragraph_format.first_line_indent = Cm(0)
+            r = p.add_run(h)
+            r.bold = True
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(255, 255, 255)
+            r.font.name = "Calibri"
+            tcPr = cell._tc.get_or_add_tcPr()
+            shd = OxmlElement("w:shd")
+            shd.set(qn("w:fill"), "1A3C5E")
+            tcPr.append(shd)
+
+        for ri, row in enumerate(rows):
+            for i, val in enumerate(row):
+                cell = t.rows[ri + 1].cells[i]
+                cell.text = ""
+                p = cell.paragraphs[0]
+                p.paragraph_format.first_line_indent = Cm(0)
+                p.paragraph_format.space_after = Pt(2)
+                r = p.add_run(str(val))
+                r.font.size = Pt(10)
+                r.font.name = "Calibri"
+                if ri % 2 == 0:
+                    tcPr = cell._tc.get_or_add_tcPr()
+                    shd = OxmlElement("w:shd")
+                    shd.set(qn("w:fill"), "F2F6FA")
+                    tcPr.append(shd)
+
+        tbl = t._tbl
+        tblPr = tbl.find(qn("w:tblPr"))
+        if tblPr is None:
+            tblPr = OxmlElement("w:tblPr")
+            tbl.insert(0, tblPr)
+        borders = OxmlElement("w:tblBorders")
+        for edge in ["top", "left", "bottom", "right", "insideH", "insideV"]:
+            b = OxmlElement("w:" + edge)
+            b.set(qn("w:val"), "single")
+            b.set(qn("w:sz"), "4")
+            b.set(qn("w:color"), "B0B0B0")
+            borders.append(b)
+        tblPr.append(borders)
+
+        if col_widths:
+            for ri in range(len(rows) + 1):
+                for i, w in enumerate(col_widths):
+                    t.rows[ri].cells[i].width = Cm(w)
+
+        doc.add_paragraph()
+        return t
+
+    # Dane
+    efi = G("d_form")
+    efk = ENTITY_FORM_KEYS[efi] if isinstance(efi, int) and efi < len(ENTITY_FORM_KEYS) else ""
     efl = ENTITY_FORM_FULL.get(efk, "")
+    efl_pl = {
+        "Spolka z ograniczona odpowiedzialnoscia": "Spó\u0142ka z ograniczon\u0105 odpowiedzialno\u015bci\u0105",
+        "Spolka akcyjna": "Spó\u0142ka akcyjna",
+        "Spolka cywilna": "Spó\u0142ka cywilna",
+        "Spolka jawna": "Spó\u0142ka jawna",
+        "Spolka komandytowa": "Spó\u0142ka komandytowa",
+        "Spolka komandytowo-akcyjna": "Spó\u0142ka komandytowo-akcyjna",
+        "Jednoosobowa dzialalnosc gospodarcza": "Jednoosobowa dzia\u0142alno\u015b\u0107 gospodarcza",
+        "Fundacja": "Fundacja",
+        "Stowarzyszenie": "Stowarzyszenie",
+    }.get(efl, efl)
+
     ad = G("d_adate"); ed = G("d_edate")
     ads = ad.strftime("%d.%m.%Y") if isinstance(ad, date) else str(ad)
     eds = ed.strftime("%d.%m.%Y") if isinstance(ed, date) else str(ed)
-    thr = f"{G('d_thr'):,}".replace(",", " ")
+    thr = "{:,}".format(G("d_thr")).replace(",", " ")
 
-    for _ in range(4): doc.add_paragraph()
-    PC("POLITYKA RACHUNKOWOSCI", 24, True)
-    PC(G("d_name") or "[nazwa jednostki]", 16)
+    # ═══════ STRONA TYTUŁOWA ═══════
+    for _ in range(4):
+        doc.add_paragraph()
+    PC("POLITYKA RACHUNKOWO\u015aCI", 26, True, c="1A3C5E")
     doc.add_paragraph()
-    PC("Na podstawie Ustawy z dnia 29 wrzesnia 1994 r. o rachunkowosci\n(Dz.U. z 2023 r. poz. 120 ze zm.)", 11, False, True, "666666")
-    PC(f"Obowiazuje od: {eds}", 11)
+    PC(G("d_name") or "[nazwa jednostki]", 16, True, c="2B5E8C")
+    PC(efl_pl, 12, i=True, c="666666")
+    doc.add_paragraph()
+    PC("NIP: " + (G("d_nip") or "\u2014") + "   |   KRS: " + (G("d_krs") or "\u2014") + "   |   REGON: " + (G("d_regon") or "\u2014"), 10, c="666666")
+    PC(G("d_addr") or "[adres siedziby]", 10, c="666666")
+    for _ in range(2):
+        doc.add_paragraph()
+    PC("Opracowana na podstawie:", 10, c="666666")
+    PC("Ustawy z dnia 29 wrze\u015bnia 1994 r. o rachunkowo\u015bci", 11, i=True, c="333333")
+    PC("(t.j. Dz.U. z 2023 r. poz. 120 z pó\u017an. zm.)", 10, i=True, c="666666")
+    PC("oraz Krajowych Standardów Rachunkowo\u015bci", 11, i=True, c="333333")
+    for _ in range(3):
+        doc.add_paragraph()
+    PC("Obowi\u0105zuje od dnia: " + eds, 12, b=True, c="1A3C5E")
+    PC("Data zatwierdzenia: " + ads, 11)
+    doc.add_paragraph()
+    PC("Zatwierdzi\u0142(a): " + (G("d_ab") or "__________________________"), 11)
     doc.add_page_break()
 
-    doc.add_heading("I. Postanowienia ogolne", level=1)
-    P('1. Polityka Rachunkowosci opracowana na podstawie Ustawy z dnia 29.09.1994 r. o rachunkowosci oraz KSR.')
-    kp = f", KRS: {G('d_krs')}" if G("d_krs") else ""
-    P(f"2. Jednostka: {G('d_name') or '[nazwa]'}, forma: {efl or '[forma]'}, NIP: {G('d_nip') or '[NIP]'}, REGON: {G('d_regon') or '[REGON]'}{kp}, siedziba: {G('d_addr') or '[adres]'}.")
+    # ═══════ SPIS TREŚCI ═══════
+    doc.add_heading("Spis tre\u015bci", level=1)
+    toc_items = [
+        ("I.", "Postanowienia ogólne"),
+        ("II.", "Zak\u0142adowy Plan Kont i prowadzenie ksi\u0105g rachunkowych"),
+        ("III.", "Dowody ksi\u0119gowe i ich obieg"),
+        ("IV.", "Metody wyceny aktywów i pasywów"),
+        ("V.", "Ewidencja kosztów i wariant Rachunku Zysków i Strat"),
+        ("VI.", "Operacje gospodarcze w walutach obcych"),
+        ("VII.", "Inwentaryzacja"),
+        ("VIII.", "System ochrony danych i ich zbiorów"),
+        ("IX.", "Raportowanie elektroniczne (JPK, KSeF)"),
+        ("X.", "Zasady dodatkowe i polityki szczególne"),
+        ("XI.", "Postanowienia ko\u0144cowe"),
+        ("", "Za\u0142\u0105czniki"),
+    ]
+    for num, title in toc_items:
+        pp = doc.add_paragraph()
+        pp.paragraph_format.first_line_indent = Cm(0)
+        pp.paragraph_format.left_indent = Cm(0.5)
+        pp.paragraph_format.space_after = Pt(4)
+        r1 = pp.add_run((num + "  ") if num else "      ")
+        r1.bold = True
+        r1.font.size = Pt(11)
+        r1.font.color.rgb = RGBColor.from_string("1A3C5E")
+        r2 = pp.add_run(title)
+        r2.font.size = Pt(11)
+    doc.add_page_break()
+
+    # ═══════ I. POSTANOWIENIA OGÓLNE ═══════
+    doc.add_heading("I. Postanowienia ogólne", level=1)
+
+    doc.add_heading("\u00a7 1. Podstawa prawna", level=2)
+    PJ("1. Niniejsza Polityka Rachunkowo\u015bci (zwana dalej " + LQ + "Polityk\u0105" + RQ + ") zosta\u0142a opracowana na podstawie przepisów Ustawy z dnia 29 wrze\u015bnia 1994 r. o rachunkowo\u015bci (t.j. Dz.U. z 2023 r. poz. 120 z pó\u017an. zm.), zwanej dalej " + LQ + "Ustaw\u0105" + RQ + ", oraz Krajowych Standardów Rachunkowo\u015bci (KSR) wydawanych przez Komitet Standardów Rachunkowo\u015bci.")
+    PJ("2. W sprawach nieuregulowanych Ustaw\u0105 oraz KSR jednostka stosuje odpowiednio Mi\u0119dzynarodowe Standardy Rachunkowo\u015bci (MSR) oraz Mi\u0119dzynarodowe Standardy Sprawozdawczo\u015bci Finansowej (MSSF).")
+    PJ("3. Polityka okre\u015bla zasady i metody prowadzenia ksi\u0105g rachunkowych, wyceny aktywów i pasywów, ustalania wyniku finansowego oraz sporz\u0105dzania sprawozdania finansowego jednostki.")
+
+    doc.add_heading("\u00a7 2. Dane identyfikacyjne jednostki", level=2)
+    PJ("1. Polityka dotyczy jednostki: " + (G("d_name") or "[nazwa jednostki]") + ".")
+    add_table(
+        ["Pozycja", "Dane jednostki"],
+        [
+            ("Nazwa", G("d_name") or "\u2014"),
+            ("Forma prawna", efl_pl or "\u2014"),
+            ("NIP", G("d_nip") or "\u2014"),
+            ("REGON", G("d_regon") or "\u2014"),
+            ("KRS", G("d_krs") or "\u2014"),
+            ("Siedziba", G("d_addr") or "\u2014"),
+        ],
+        col_widths=[5, 10]
+    )
+
+    doc.add_heading("\u00a7 3. Rok obrotowy", level=2)
     fys = "1 stycznia" if G("d_fys") == "01-01" else G("d_fys")
     fye = "31 grudnia" if G("d_fye") == "12-31" else G("d_fye")
-    P(f"3. Rok obrotowy: od {fys} do {fye}.")
-    P("4. Ksiegi w jezyku polskim, waluta PLN.")
-    if G("d_small"): P("5. Jednostka mala - uproszczenia (art. 3 ust. 1c UoR).")
-    elif G("d_micro"): P("5. Jednostka mikro - uproszczenia (art. 3 ust. 1a UoR).")
-    else: P("5. Pelne zasady rachunkowosci.")
+    PJ("1. Rokiem obrotowym jednostki jest okres od " + fys + " do " + fye + " ka\u017cdego roku kalendarzowego.")
+    PJ("2. Rok obrotowy dzieli si\u0119 na okresy sprawozdawcze obejmuj\u0105ce poszczególne miesi\u0105ce kalendarzowe.")
+    PJ("3. Pierwszy rok obrotowy mo\u017ce by\u0107 d\u0142u\u017cszy ni\u017c 12 kolejnych miesi\u0119cy, jednak nie d\u0142u\u017cszy ni\u017c 18 miesi\u0119cy (art. 3 ust. 1 pkt 9 Ustawy).")
 
-    doc.add_heading("II. Zakladowy Plan Kont i ksiegi rachunkowe", level=1)
-    zpk = "wzorcowy plan kont" if "Wzorcowy" in G("d_zpk") else "indywidualny plan kont (wygenerowany na podstawie parametrow jednostki)"
-    P(f"1. ZPK oparty o {zpk} - Zalacznik nr 1.")
-    P("2. Ksiegi: dziennik, konta ksiegi glownej, konta ksiag pomocniczych, zestawienie obrotow i sald.")
-    sf = G("d_sn") or "[program]"
-    if G("d_sv"): sf += f", wersja: {G('d_sv')}"
-    if G("d_sp"): sf += f", producent: {G('d_sp')}"
-    P(f"3. System informatyczny: {sf}.")
-    P("4. Opis systemu - Zalacznik nr 2.")
+    doc.add_heading("\u00a7 4. J\u0119zyk i waluta", level=2)
+    PJ("1. Ksi\u0119gi rachunkowe prowadzone s\u0105 w j\u0119zyku polskim.")
+    PJ("2. Walut\u0105 prowadzenia ksi\u0105g jest z\u0142oty polski (PLN).")
+    PJ("3. Warto\u015bci wyra\u017cone w walutach obcych przelicza si\u0119 na walut\u0119 polsk\u0105 wed\u0142ug zasad okre\u015blonych w Rozdziale VI niniejszej Polityki.")
+
+    doc.add_heading("\u00a7 5. Status jednostki", level=2)
+    if G("d_small"):
+        PJ("1. Jednostka spe\u0142nia kryteria okre\u015blone w art. 3 ust. 1c Ustawy i klasyfikowana jest jako jednostka ma\u0142a. Korzysta z uproszcze\u0144 przewidzianych dla jednostek ma\u0142ych, w szczególno\u015bci w zakresie:")
+        P("\u2022 sporz\u0105dzania uproszczonego bilansu i rachunku zysków i strat (Za\u0142\u0105cznik nr 5 do Ustawy),", indent=False)
+        P("\u2022 zwolnienia z obowi\u0105zku sporz\u0105dzania zestawienia zmian w kapitale (funduszu) w\u0142asnym,", indent=False)
+        P("\u2022 zwolnienia z obowi\u0105zku sporz\u0105dzania rachunku przep\u0142ywów pieni\u0119\u017cnych (o ile nie podlega badaniu).", indent=False)
+    elif G("d_micro"):
+        PJ("1. Jednostka spe\u0142nia kryteria okre\u015blone w art. 3 ust. 1a Ustawy i klasyfikowana jest jako jednostka mikro. Korzysta z maksymalnych uproszcze\u0144 przewidzianych dla jednostek mikro (Za\u0142\u0105cznik nr 4 do Ustawy).")
+    else:
+        PJ("1. Jednostka stosuje pe\u0142ne zasady rachunkowo\u015bci zgodnie z Ustaw\u0105, bez korzystania z uproszcze\u0144 przewidzianych dla jednostek ma\u0142ych lub mikro.")
+
+    doc.add_heading("\u00a7 6. Odpowiedzialno\u015b\u0107", level=2)
+    PJ("1. Za przestrzeganie zasad (polityki) rachunkowo\u015bci oraz prowadzenie ksi\u0105g rachunkowych odpowiedzialno\u015b\u0107 ponosi kierownik jednostki, zgodnie z art. 4 ust. 5 Ustawy.")
+    PJ("2. Kierownik jednostki mo\u017ce powierzy\u0107 prowadzenie ksi\u0105g rachunkowych podmiotowi zewn\u0119trznemu, co nie zwalnia go z odpowiedzialno\u015bci okre\u015blonej w ust. 1.")
+
+    # ═══════ II. ZPK I KSIĘGI ═══════
+    doc.add_heading("II. Zak\u0142adowy Plan Kont i prowadzenie ksi\u0105g rachunkowych", level=1)
+
+    doc.add_heading("\u00a7 7. Zak\u0142adowy Plan Kont", level=2)
+    zpk = "wzorcowy plan kont" if "Wzorcowy" in G("d_zpk") else "indywidualnie opracowany plan kont, uwzgl\u0119dniaj\u0105cy specyfik\u0119 dzia\u0142alno\u015bci jednostki"
+    PJ("1. Jednostka stosuje Zak\u0142adowy Plan Kont (ZPK) oparty o " + zpk + ", stanowi\u0105cy Za\u0142\u0105cznik nr 1 do niniejszej Polityki.")
+    PJ("2. ZPK obejmuje wykaz kont ksi\u0119gi g\u0142ównej (syntetycznych) oraz kont ksi\u0105g pomocniczych (analitycznych) wraz z opisem ich przeznaczenia, zasad funkcjonowania oraz powi\u0105za\u0144 korespondencyjnych.")
+    PJ("3. Zmiany w ZPK wprowadzane s\u0105 w trakcie roku obrotowego wy\u0142\u0105cznie w uzasadnionych przypadkach, z zachowaniem zasady ci\u0105g\u0142o\u015bci (art. 5 ust. 1 Ustawy). Zmiany dokumentuje si\u0119 aneksem do niniejszej Polityki.")
+
+    doc.add_heading("\u00a7 8. Rodzaje ksi\u0105g rachunkowych", level=2)
+    PJ("1. Ksi\u0119gi rachunkowe jednostki obejmuj\u0105, zgodnie z art. 13 Ustawy:")
+    add_table(
+        ["Lp.", "Rodzaj ksi\u0119gi", "Opis"],
+        [
+            ("1.", "Dziennik", "Zapis chronologiczny wszystkich zdarze\u0144, jakie nast\u0105pi\u0142y w okresie sprawozdawczym"),
+            ("2.", "Ksi\u0119ga g\u0142ówna", "Konta syntetyczne \u2014 zapisy systematyczne zdarze\u0144 gospodarczych"),
+            ("3.", "Ksi\u0119gi pomocnicze", "Konta analityczne uszczegó\u0142awiaj\u0105ce zapisy ksi\u0119gi g\u0142ównej"),
+            ("4.", "Zestawienia obrotów i sald", "Sporz\u0105dzane miesi\u0119cznie dla kont ksi\u0119gi g\u0142ównej i ksi\u0105g pomocniczych"),
+            ("5.", "Wykaz sk\u0142adników (inwentarz)", "Stosowany w przypadkach okre\u015blonych przepisami"),
+        ],
+        col_widths=[1, 4, 11]
+    )
+
+    doc.add_heading("\u00a7 9. System informatyczny", level=2)
+    sf = G("d_sn") or "[nazwa programu ksi\u0119gowego]"
+    sv_part = ", wersja: " + G("d_sv") if G("d_sv") else ""
+    sp_part = ", producent: " + G("d_sp") if G("d_sp") else ""
+    PJ("1. Ksi\u0119gi rachunkowe prowadzone s\u0105 przy u\u017cyciu systemu informatycznego: " + sf + sv_part + sp_part + ".")
+    PJ("2. System informatyczny spe\u0142nia wymogi okre\u015blone w art. 10 ust. 1 pkt 3 lit. c oraz art. 13 ust. 2-6 Ustawy, w szczególno\u015bci zapewnia:")
+    P("\u2022 trwa\u0142o\u015b\u0107 zapisu, niezmienno\u015b\u0107 wprowadzonych danych oraz zgodno\u015b\u0107 z dokumentami \u017aród\u0142owymi,", indent=False)
+    P("\u2022 mo\u017cliwo\u015b\u0107 wydruku ksi\u0105g w postaci zestawie\u0144 ksi\u0119gowych za dowolny okres,", indent=False)
+    P("\u2022 ochron\u0119 przed dost\u0119pem osób nieuprawnionych oraz przed utrat\u0105 danych,", indent=False)
+    P("\u2022 prawid\u0142owo\u015b\u0107 zapisów ksi\u0119gowych oraz ich powi\u0105zanie z dowodami ksi\u0119gowymi.", indent=False)
+    PJ("3. Szczegó\u0142owy opis systemu informatycznego, w tym wykaz programów wraz z pisemnym stwierdzeniem dopuszczenia ich do stosowania (art. 10 ust. 2 Ustawy), stanowi Za\u0142\u0105cznik nr 2 do niniejszej Polityki.")
 
     if G("d_ksef"):
-        doc.add_heading("II.B Krajowy System e-Faktur (KSeF)", level=2)
-        P("1. Jednostka uczestniczy w Krajowym Systemie e-Faktur (KSeF) zgodnie z ustawa z dnia 29 pazdziernika 2021 r. o zmianie ustawy o podatku od towarow i uslug oraz niektorych innych ustaw. Od 1 lutego 2026 r. KSeF jest obowiazkowy dla wszystkich czynnych podatnikow VAT.")
-        P("2. Faktury sprzedazowe wystawiane sa wylacznie w formie ustrukturyzowanej (FA/2) i przesylane do KSeF. Numer KSeF nadany przez system stanowi unikatowy identyfikator faktury.")
-        P("3. Faktury zakupowe otrzymywane sa za posrednictwem KSeF. Weryfikacja poprawnosci faktury nastepuje po jej pobraniu z repozytorium KSeF.")
+        doc.add_heading("\u00a7 10. Krajowy System e-Faktur (KSeF)", level=2)
+        PJ("1. Od dnia 1 lutego 2026 r. jednostka jako czynny podatnik VAT obowi\u0105zkowo uczestniczy w Krajowym Systemie e-Faktur (KSeF), zgodnie z ustaw\u0105 z dnia 16 czerwca 2023 r. o zmianie ustawy o podatku od towarów i us\u0142ug oraz niektórych innych ustaw (Dz.U. z 2023 r. poz. 1598).")
+        PJ("2. Faktury sprzeda\u017cowe wystawiane s\u0105 wy\u0142\u0105cznie w formie ustrukturyzowanej (schemat FA(2)) i przesy\u0142ane do KSeF. Numer KSeF nadany przez system stanowi unikalny identyfikator faktury.")
+        PJ("3. Faktury zakupowe otrzymywane s\u0105 za po\u015brednictwem KSeF. Weryfikacja poprawno\u015bci faktury (formalna i merytoryczna) nast\u0119puje po jej pobraniu z repozytorium KSeF.")
 
         ksef_mom = G("d_ksef_moment")
         if "wystawienia" in ksef_mom:
-            P("4. Moment ujecia faktury w ksiegach rachunkowych: faktura ujmowana jest pod data wystawienia w KSeF, o ile data ta jest tozszama z data operacji gospodarczej. W przypadku rozbiesznosci - pod data operacji gospodarczej z adnotacja o numerze KSeF.")
+            PJ("4. Moment uj\u0119cia faktury w ksi\u0119gach rachunkowych: faktura ujmowana jest pod dat\u0105 wystawienia w KSeF, o ile data ta jest to\u017csama z dat\u0105 operacji gospodarczej. W przypadku rozbie\u017cno\u015bci \u2014 pod dat\u0105 operacji gospodarczej z adnotacj\u0105 o numerze KSeF i dacie wystawienia.")
         elif "operacji" in ksef_mom:
-            P("4. Moment ujecia faktury w ksiegach rachunkowych: faktura ujmowana jest pod data operacji gospodarczej (data dostawy towaru lub wykonania uslugi), niezaleznie od daty wystawienia w KSeF.")
+            PJ("4. Moment uj\u0119cia faktury w ksi\u0119gach rachunkowych: faktura ujmowana jest pod dat\u0105 operacji gospodarczej (data dostawy towaru lub wykonania us\u0142ugi), niezale\u017cnie od daty wystawienia w KSeF.")
         else:
-            P("4. Moment ujecia faktury w ksiegach rachunkowych: faktura ujmowana jest pod data otrzymania (pobrania) z KSeF.")
+            PJ("4. Moment uj\u0119cia faktury w ksi\u0119gach rachunkowych: faktura ujmowana jest pod dat\u0105 otrzymania (pobrania) z KSeF.")
 
         ksef_kor = G("d_ksef_korekty")
         if "Nota" in ksef_kor:
-            P("5. Faktury korygujace: korekty danych formalnych realizowane sa w formie not korygujacych przesylanych przez KSeF. Korekty wartosciowe - w formie faktur korygujacych z odniesieniem do numeru KSeF faktury pierwotnej.")
+            PJ("5. Faktury koryguj\u0105ce: korekty danych formalnych realizowane s\u0105 w formie not koryguj\u0105cych przesy\u0142anych przez KSeF. Korekty warto\u015bciowe \u2014 w formie faktur koryguj\u0105cych z odniesieniem do numeru KSeF faktury pierwotnej.")
         elif "zbiorcza" in ksef_kor:
-            P("5. Faktury korygujace: stosowane sa korekty zbiorcze za okresy rozliczeniowe, przesylane przez KSeF z odniesieniem do okresu i kontrahenta.")
+            PJ("5. Faktury koryguj\u0105ce: stosowane s\u0105 korekty zbiorcze za okresy rozliczeniowe, przesy\u0142ane przez KSeF z odniesieniem do okresu i kontrahenta.")
         else:
-            P("5. Faktury korygujace: kazda korekta wystawiana jest jako odrebna faktura korygujaca w KSeF z odniesieniem do numeru KSeF faktury pierwotnej.")
+            PJ("5. Faktury koryguj\u0105ce: ka\u017cda korekta wystawiana jest jako odr\u0119bna faktura koryguj\u0105ca w KSeF z odniesieniem do numeru KSeF faktury pierwotnej.")
 
         ksef_sys = G("d_ksef_system")
         if "Zintegrowany" in ksef_sys:
-            P("6. Integracja z systemem ksiegowym: system FK jednostki jest zintegrowany z KSeF poprzez API. Faktury sprzedazowe generowane sa automatycznie z systemu FK i przesylane do KSeF. Faktury zakupowe importowane sa automatycznie z KSeF do systemu FK.")
-        elif "Polautomatyczny" in ksef_sys:
-            P("6. Integracja z systemem ksiegowym: faktury eksportowane/importowane sa w formacie XML (schemat FA/2) miedzy systemem FK a KSeF. Proces wymaga recznego uruchomienia importu/eksportu.")
+            PJ("6. Integracja z systemem ksi\u0119gowym: system FK jednostki jest zintegrowany z KSeF poprzez API. Faktury sprzeda\u017cowe generowane s\u0105 automatycznie z systemu FK i przesy\u0142ane do KSeF. Faktury zakupowe importowane s\u0105 automatycznie z KSeF do systemu FK.")
+        elif "automatyczny" in ksef_sys.lower():
+            PJ("6. Integracja z systemem ksi\u0119gowym: faktury eksportowane/importowane s\u0105 w formacie XML (schemat FA(2)) mi\u0119dzy systemem FK a KSeF. Proces wymaga r\u0119cznego uruchomienia importu/eksportu w okresach miesi\u0119cznych.")
         else:
-            P("6. Integracja z systemem ksiegowym: dane z faktur KSeF wprowadzane sa recznie do systemu FK na podstawie podgladu faktury w repozytorium KSeF.")
+            PJ("6. Integracja z systemem ksi\u0119gowym: dane z faktur KSeF wprowadzane s\u0105 r\u0119cznie do systemu FK na podstawie podgl\u0105du faktury w repozytorium KSeF.")
 
-        P("7. Mapowanie JPK: numer KSeF przypisywany jest do kazdego zapisu ksiegowego dotyczacego faktury, umozliwiajac pelna identyfikowalnosc na potrzeby JPK_VAT i JPK_CIT.")
+        PJ("7. Numer KSeF przypisywany jest do ka\u017cdego zapisu ksi\u0119gowego dotycz\u0105cego faktury, umo\u017cliwiaj\u0105c pe\u0142n\u0105 identyfikowalno\u015b\u0107 na potrzeby JPK_VAT i JPK_CIT.")
 
-    doc.add_heading("III. Metody wyceny aktywow i pasywow", level=1)
-    dm = {"Metoda liniowa": "liniowa", "Metoda degresywna": "degresywna", "Jednorazowa": "jednorazowo"}
-    P(f"1. ST powyzej {thr} PLN - amortyzacja {dm.get(G('d_dep'), G('d_dep'))}.")
-    P(f"2. Ponizej {thr} PLN - jednorazowy odpis w koszty.")
-    P("3. WNiP - metoda liniowa.")
-    ivm = {"Cena nabycia": "cen nabycia", "Koszt wytworzenia": "kosztu wytworzenia", "Cena rynkowa": "wartosci rynkowej"}
-    P(f"4. Zapasy wg {ivm.get(G('d_iv'), G('d_iv'))}.")
-    idm = {"FIFO": "FIFO", "LIFO": "LIFO", "Srednia wazona": "sredniej wazonej", "Szczegolowa identyfikacja": "szczegolowej identyfikacji"}
-    P(f"5. Rozchod zapasow: {idm.get(G('d_id'), G('d_id'))}.")
-    P("6. Naleznosci w kwocie wymaganej zaplaty. Odpisy aktualizujace wg zasady ostroznosci.")
-    P("7. Zobowiazania w kwocie wymagajacej zaplaty. Rezerwy na prawdopodobne zobowiazania.")
+    # ═══════ III. DOWODY KSIĘGOWE ═══════
+    doc.add_heading("III. Dowody ksi\u0119gowe i ich obieg", level=1)
 
-    doc.add_heading("IV. Ewidencja kosztow i RZiS", level=1)
-    cmm = {"Tylko Zespol 4 (uklad rodzajowy)": "wylacznie w Zespole 4",
-           "Tylko Zespol 5 (uklad kalkulacyjny)": "wylacznie w Zespole 5",
-           "Zespol 4 + 5 (oba uklady)": "rownolegle w Zespole 4 i 5"}
-    P(f"1. Koszty {cmm.get(G('d_cm'), G('d_cm'))}.")
-    plbl = "porownawczym" if "porownawczy" in G("d_pl") else "kalkulacyjnym"
-    P(f"2. RZiS wariant {plbl}.")
+    doc.add_heading("\u00a7 11. Rodzaje dowodów ksi\u0119gowych", level=2)
+    PJ("1. Podstaw\u0105 zapisów w ksi\u0119gach rachunkowych s\u0105 dowody ksi\u0119gowe stwierdzaj\u0105ce dokonanie operacji gospodarczej (art. 20 ust. 2 Ustawy).")
+    PJ("2. Jednostka stosuje nast\u0119puj\u0105ce rodzaje dowodów ksi\u0119gowych:")
+    add_table(
+        ["Rodzaj dowodu", "Opis", "\u0179ród\u0142o"],
+        [
+            ("Zewn\u0119trzne obce", "Otrzymane od kontrahentów (faktury, rachunki, wezwania)", "Kontrahenci, KSeF"),
+            ("Zewn\u0119trzne w\u0142asne", "Wystawiane na rzecz kontrahentów (faktury sprzeda\u017cy)", "Jednostka \u2192 KSeF"),
+            ("Wewn\u0119trzne", "Dokumentuj\u0105ce operacje wewn\u0105trz jednostki (PK, PZ, WZ, LP)", "Jednostka"),
+            ("Zbiorcze", "\u0141\u0105cz\u0105ce dowody jednorodne (zestawienia wp\u0142at, kompensaty)", "Jednostka"),
+            ("Koryguj\u0105ce", "Korekty wcze\u015bniejszych dowodów (noty, faktury koryguj\u0105ce)", "Jednostka / KSeF"),
+            ("Zast\u0119pcze", "Wystawiane w razie braku dowodu zewn\u0119trznego", "Jednostka"),
+            ("Rozliczeniowe", "Stanowi\u0105ce podstaw\u0119 zapisów dekretowych (PK)", "Jednostka"),
+        ],
+        col_widths=[3.5, 8.5, 4]
+    )
 
-    doc.add_heading("V. Operacje walutowe", level=1)
-    fxm = {"Kurs sredni NBP": "sredni NBP", "Kurs kupna banku": "kupna banku", "Kurs sprzedazy banku": "sprzedazy banku"}
-    P(f"1. Kurs: {fxm.get(G('d_fxs'), G('d_fxs'))}.")
-    P("2. Dzien bilansowy - kurs sredni NBP (art. 30 ust. 1).")
+    doc.add_heading("\u00a7 12. Wymagania formalne dowodów", level=2)
+    PJ("1. Dowód ksi\u0119gowy powinien zawiera\u0107 co najmniej elementy okre\u015blone w art. 21 ust. 1 Ustawy:")
+    P("\u2022 okre\u015blenie rodzaju dowodu i jego numeru identyfikacyjnego,", indent=False)
+    P("\u2022 okre\u015blenie stron operacji gospodarczej,", indent=False)
+    P("\u2022 opis operacji oraz jej warto\u015b\u0107,", indent=False)
+    P("\u2022 dat\u0119 dokonania operacji oraz dat\u0119 wystawienia dowodu,", indent=False)
+    P("\u2022 podpis wystawcy i osoby, której powierzono sk\u0142adniki maj\u0105tku (je\u015bli wymagane),", indent=False)
+    P("\u2022 stwierdzenie sprawdzenia i zakwalifikowania dowodu do uj\u0119cia w ksi\u0119gach (dekretacja).", indent=False)
 
-    doc.add_heading("VI. Ochrona danych", level=1)
-    P(f"1. Archiwizacja: {G('d_ay')} lat (art. 74 UoR).")
-    bkm = {"Codziennie": "codzienna", "Co tydzien": "tygodniowa", "Co miesiac": "miesieczna"}
-    P(f"2. Kopie zapasowe: {bkm.get(G('d_bk'), G('d_bk'))}.")
+    doc.add_heading("\u00a7 13. Obieg dokumentów", level=2)
+    PJ("1. Obieg dokumentów w jednostce odbywa si\u0119 zgodnie z zasadami okre\u015blonymi w Instrukcji Obiegu Dokumentów, stanowi\u0105cej Za\u0142\u0105cznik nr 4 do niniejszej Polityki.")
+    PJ("2. Ka\u017cdy dowód ksi\u0119gowy podlega kontroli merytorycznej, formalno-rachunkowej oraz dekretacji przed uj\u0119ciem w ksi\u0119gach rachunkowych.")
+
+    # ═══════ IV. METODY WYCENY ═══════
+    doc.add_heading("IV. Metody wyceny aktywów i pasywów", level=1)
+
+    doc.add_heading("\u00a7 14. \u015arodki trwa\u0142e i warto\u015bci niematerialne i prawne", level=2)
+    PJ("1. \u015arodki trwa\u0142e oraz warto\u015bci niematerialne i prawne o warto\u015bci pocz\u0105tkowej przekraczaj\u0105cej " + thr + " PLN ujmowane s\u0105 w ewidencji \u015brodków trwa\u0142ych i amortyzowane zgodnie z planem amortyzacji.")
+    dm = {"Metoda liniowa": "metod\u0105 liniow\u0105", "Metoda degresywna": "metod\u0105 degresywn\u0105 (wspó\u0142czynnik 2,0)", "Jednorazowa": "jednorazowo, do limitu ustawowego"}
+    PJ("2. \u015arodki trwa\u0142e amortyzowane s\u0105 " + dm.get(G("d_dep"), G("d_dep")) + ", zgodnie ze stawkami wynikaj\u0105cymi z wykazu stawek amortyzacyjnych stanowi\u0105cego za\u0142\u0105cznik do ustawy o podatku dochodowym od osób prawnych.")
+    PJ("3. Sk\u0142adniki maj\u0105tku o warto\u015bci pocz\u0105tkowej nieprzekraczaj\u0105cej " + thr + " PLN mog\u0105 by\u0107 jednorazowo odpisywane w koszty w miesi\u0105cu oddania do u\u017cytkowania, bez ujmowania w ewidencji \u015brodków trwa\u0142ych.")
+    PJ("4. Warto\u015bci niematerialne i prawne amortyzowane s\u0105 metod\u0105 liniow\u0105 przez okres ekonomicznej u\u017cyteczno\u015bci:")
+    add_table(
+        ["Rodzaj WNiP", "Okres amortyzacji"],
+        [
+            ("Licencje na oprogramowanie komputerowe", "minimum 24 miesi\u0105ce"),
+            ("Prawa autorskie i pokrewne", "minimum 24 miesi\u0105ce"),
+            ("Koszty zako\u0144czonych prac rozwojowych", "maksymalnie 5 lat"),
+            ("Warto\u015b\u0107 firmy", "maksymalnie 5 lat (art. 44b ust. 10 Ustawy)"),
+            ("Pozosta\u0142e WNiP", "minimum 60 miesi\u0119cy"),
+        ],
+        col_widths=[8, 8]
+    )
+    PJ("5. Warto\u015b\u0107 pocz\u0105tkowa \u015brodków trwa\u0142ych obejmuje cen\u0119 nabycia lub koszt wytworzenia powi\u0119kszone o koszty bezpo\u015brednio zwi\u0105zane z zakupem i przystosowaniem do u\u017cywania (monta\u017c, transport, op\u0142aty notarialne, odsetki od kredytów do momentu oddania do u\u017cywania).")
+    PJ("6. \u015arodki trwa\u0142e w budowie wycenia si\u0119 w wysoko\u015bci ogó\u0142u kosztów pozostaj\u0105cych w bezpo\u015brednim zwi\u0105zku z ich budow\u0105, monta\u017cem lub przystosowaniem, pomniejszonych o odpisy z tytu\u0142u trwa\u0142ej utraty warto\u015bci.")
+    PJ("7. Trwa\u0142\u0105 utrat\u0119 warto\u015bci \u015brodków trwa\u0142ych ocenia si\u0119 na ka\u017cdy dzie\u0144 bilansowy zgodnie z KSR 4. W razie stwierdzenia takiej utraty dokonuje si\u0119 odpisu aktualizuj\u0105cego.")
+
+    doc.add_heading("\u00a7 15. Zapasy", level=2)
+    ivm = {"Cena nabycia": "cen nabycia", "Koszt wytworzenia": "kosztu wytworzenia", "Cena rynkowa": "warto\u015bci rynkowej"}
+    PJ("1. Zapasy (rzeczowe aktywa obrotowe) wyceniane s\u0105 wed\u0142ug " + ivm.get(G("d_iv"), G("d_iv")) + ", nie wy\u017cszych od cen sprzeda\u017cy netto na dzie\u0144 bilansowy.")
+    PJ("2. Cena nabycia obejmuje cen\u0119 zakupu powi\u0119kszon\u0105 o koszty bezpo\u015brednio zwi\u0105zane z zakupem (c\u0142a, transport, ubezpieczenie, op\u0142aty publicznoprawne) oraz pomniejszon\u0105 o rabaty, opusty i inne podobne zmniejszenia.")
+    idm = {"FIFO": "FIFO (pierwsze wesz\u0142o \u2014 pierwsze wysz\u0142o)", "LIFO": "LIFO (ostatnie wesz\u0142o \u2014 pierwsze wysz\u0142o)", "Srednia wazona": "\u015bredniej wa\u017conej", "Szczegolowa identyfikacja": "szczegó\u0142owej identyfikacji"}
+    PJ("3. Rozchód zapasów wyceniany jest metod\u0105 " + idm.get(G("d_id"), G("d_id")) + ", zgodnie z art. 34 ust. 4 Ustawy. Wybran\u0105 metod\u0119 stosuje si\u0119 konsekwentnie w stosunku do zapasów o podobnym charakterze i przeznaczeniu.")
+    PJ("4. Zapasy o obni\u017conej przydatno\u015bci gospodarczej lub utraconej warto\u015bci handlowej obejmowane s\u0105 odpisami aktualizuj\u0105cymi do warto\u015bci netto mo\u017cliwej do uzyskania.")
+    PJ("5. Inwentaryzacja zapasów przeprowadzana jest zgodnie z zasadami okre\u015blonymi w Rozdziale VII niniejszej Polityki.")
+
+    doc.add_heading("\u00a7 16. Nale\u017cno\u015bci", level=2)
+    PJ("1. Nale\u017cno\u015bci wycenia si\u0119 w kwocie wymaganej zap\u0142aty, z zachowaniem zasady ostro\u017cno\u015bci (art. 28 ust. 1 pkt 7 Ustawy), tj. po pomniejszeniu o odpisy aktualizuj\u0105ce.")
+    PJ("2. Odpisy aktualizuj\u0105ce warto\u015b\u0107 nale\u017cno\u015bci tworzy si\u0119 w odniesieniu do:")
+    P("\u2022 nale\u017cno\u015bci od d\u0142u\u017cników postawionych w stan likwidacji lub upad\u0142o\u015bci,", indent=False)
+    P("\u2022 nale\u017cno\u015bci kwestionowanych przez d\u0142u\u017cników lub z których zap\u0142at\u0105 d\u0142u\u017cnik zalega,", indent=False)
+    P("\u2022 nale\u017cno\u015bci przeterminowanych powy\u017cej 180 dni \u2014 w wysoko\u015bci 50%,", indent=False)
+    P("\u2022 nale\u017cno\u015bci przeterminowanych powy\u017cej 360 dni \u2014 w wysoko\u015bci 100%.", indent=False)
+    PJ("3. Nale\u017cno\u015bci w walutach obcych wycenia si\u0119 zgodnie z zasadami okre\u015blonymi w Rozdziale VI niniejszej Polityki.")
+
+    doc.add_heading("\u00a7 17. Inwestycje", level=2)
+    PJ("1. Inwestycje krótkoterminowe (papiery warto\u015bciowe, udzia\u0142y, lokaty) wycenia si\u0119 wed\u0142ug ceny nabycia lub warto\u015bci rynkowej, zale\u017cnie od tego, która z nich jest ni\u017csza (art. 28 ust. 1 pkt 5 Ustawy).")
+    PJ("2. Inwestycje d\u0142ugoterminowe (udzia\u0142y i akcje w jednostkach powi\u0105zanych i pozosta\u0142ych) wycenia si\u0119 wed\u0142ug ceny nabycia pomniejszonej o odpisy z tytu\u0142u trwa\u0142ej utraty warto\u015bci.")
+    PJ("3. Nieruchomo\u015bci inwestycyjne wycenia si\u0119 wed\u0142ug zasad stosowanych do \u015brodków trwa\u0142ych.")
+
+    doc.add_heading("\u00a7 18. Zobowi\u0105zania i rezerwy", level=2)
+    PJ("1. Zobowi\u0105zania wycenia si\u0119 w kwocie wymagaj\u0105cej zap\u0142aty (art. 28 ust. 1 pkt 8 Ustawy).")
+    PJ("2. Zobowi\u0105zania finansowe (kredyty, po\u017cyczki) wycenia si\u0119 wed\u0142ug skorygowanej ceny nabycia z zastosowaniem efektywnej stopy procentowej.")
+    PJ("3. Rezerwy tworzy si\u0119 na pewne lub o du\u017cym stopniu prawdopodobie\u0144stwa przysz\u0142e zobowi\u0105zania (art. 35d Ustawy). Obejmuj\u0105 w szczególno\u015bci:")
+    P("\u2022 rezerwy na \u015bwiadczenia pracownicze (odprawy emerytalne, nagrody jubileuszowe, niewykorzystane urlopy),", indent=False)
+    P("\u2022 rezerwy na naprawy gwarancyjne i r\u0119kojmi\u0119,", indent=False)
+    P("\u2022 rezerwy na sprawy sporne i post\u0119powania s\u0105dowe,", indent=False)
+    P("\u2022 rezerwy na restrukturyzacj\u0119.", indent=False)
+    PJ("4. Bierne rozliczenia mi\u0119dzyokresowe kosztów dokonywane s\u0105 zgodnie z art. 39 ust. 2 Ustawy w wysoko\u015bci prawdopodobnych zobowi\u0105za\u0144 przypadaj\u0105cych na bie\u017c\u0105cy okres sprawozdawczy.")
+
+    doc.add_heading("\u00a7 19. Kapita\u0142y w\u0142asne", level=2)
+    PJ("1. Kapita\u0142 zak\u0142adowy wykazuje si\u0119 w wysoko\u015bci okre\u015blonej w umowie spó\u0142ki, ujawnionej w Krajowym Rejestrze S\u0105dowym.")
+    PJ("2. Kapita\u0142 zapasowy tworzony jest z odpisów z zysku oraz innych \u017aróde\u0142 okre\u015blonych w przepisach prawa i umowie spó\u0142ki.")
+    PJ("3. Niepodzielone wyniki finansowe z lat ubieg\u0142ych wykazuje si\u0119 w odr\u0119bnej pozycji bilansu.")
+
+    # ═══════ V. KOSZTY I RZIS ═══════
+    doc.add_heading("V. Ewidencja kosztów i wariant Rachunku Zysków i Strat", level=1)
+
+    doc.add_heading("\u00a7 20. Model ewidencji kosztów", level=2)
+    cmm = {
+        "Tylko Zespol 4 (uklad rodzajowy)": "wy\u0142\u0105cznie w Zespole 4 (uk\u0142ad rodzajowy)",
+        "Tylko Zespol 5 (uklad kalkulacyjny)": "wy\u0142\u0105cznie w Zespole 5 (uk\u0142ad funkcjonalno-kalkulacyjny)",
+        "Zespol 4 + 5 (oba uklady)": "równolegle w Zespole 4 i Zespole 5"
+    }
+    PJ("1. Jednostka prowadzi ewidencj\u0119 kosztów " + cmm.get(G("d_cm"), G("d_cm")) + ".")
+
+    if "Zespol 4" in G("d_cm"):
+        PJ("2. Koszty ujmowane s\u0105 w uk\u0142adzie rodzajowym, zgodnie z tre\u015bci\u0105 ekonomiczn\u0105 operacji gospodarczej, w nast\u0119puj\u0105cych kategoriach:")
+        add_table(
+            ["Konto", "Nazwa", "Opis"],
+            [
+                ("400", "Amortyzacja", "Odpisy amortyzacyjne ST i WNiP"),
+                ("401", "Zu\u017cycie materia\u0142ów i energii", "Materia\u0142y, energia, paliwo"),
+                ("402", "Us\u0142ugi obce", "Us\u0142ugi transportowe, remontowe, doradcze, najem"),
+                ("403", "Podatki i op\u0142aty", "Podatki niezaliczone do CIT, op\u0142aty urz\u0119dowe"),
+                ("404", "Wynagrodzenia", "Wynagrodzenia brutto pracowników i zleceniobiorców"),
+                ("405", "Ubezpieczenia spo\u0142eczne i \u015bwiadczenia", "ZUS, BHP, \u015bwiadczenia socjalne"),
+                ("409", "Pozosta\u0142e koszty rodzajowe", "Koszty niemieszcz\u0105ce si\u0119 w innych kategoriach"),
+            ],
+            col_widths=[2, 5, 9]
+        )
+    if "Zespol 5" in G("d_cm") or "4 + 5" in G("d_cm"):
+        PJ("3. Koszty ujmowane s\u0105 równie\u017c w uk\u0142adzie funkcjonalno-kalkulacyjnym (Zespó\u0142 5), w podziale na:")
+        P("\u2022 koszty produkcji podstawowej (501),", indent=False)
+        P("\u2022 koszty wydzia\u0142ów (520),", indent=False)
+        P("\u2022 koszty sprzeda\u017cy (527),", indent=False)
+        P("\u2022 koszty ogólnego zarz\u0105du (550).", indent=False)
+
+    doc.add_heading("\u00a7 21. Wariant Rachunku Zysków i Strat", level=2)
+    plbl = "porównawczym" if "porownawczy" in G("d_pl") else "kalkulacyjnym"
+    atn = "4" if G("d_micro") else "5" if G("d_small") else "1"
+    PJ("1. Rachunek Zysków i Strat sporz\u0105dzany jest w wariancie " + plbl + ", zgodnie z Za\u0142\u0105cznikiem nr " + atn + " do Ustawy.")
+    if "porownawczy" in G("d_pl"):
+        PJ("2. W wariancie porównawczym koszty i przychody prezentowane s\u0105 w uk\u0142adzie rodzajowym, ze zmian\u0105 stanu produktów jako oddzieln\u0105 pozycj\u0105 koryguj\u0105c\u0105.")
+    else:
+        PJ("2. W wariancie kalkulacyjnym koszty przypisywane s\u0105 do funkcji (produkcja, sprzeda\u017c, zarz\u0105d), a przychody netto ze sprzeda\u017cy konfrontowane s\u0105 z kosztem wytworzenia sprzedanych produktów.")
+
+    # ═══════ VI. WALUTY OBCE ═══════
+    doc.add_heading("VI. Operacje gospodarcze w walutach obcych", level=1)
+
+    doc.add_heading("\u00a7 22. Kurs walut", level=2)
+    fxm = {
+        "Kurs sredni NBP": "\u015brednim og\u0142aszanym przez Narodowy Bank Polski z ostatniego dnia roboczego poprzedzaj\u0105cego dzie\u0144 operacji",
+        "Kurs kupna banku": "kupna banku, z którego us\u0142ug korzysta jednostka",
+        "Kurs sprzedazy banku": "sprzeda\u017cy banku, z którego us\u0142ug korzysta jednostka"
+    }
+    PJ("1. Operacje gospodarcze wyra\u017cone w walutach obcych ujmuje si\u0119 w ksi\u0119gach rachunkowych w walucie polskiej, przeliczone po kursie " + fxm.get(G("d_fxs"), G("d_fxs")) + " (art. 30 ust. 2 Ustawy).")
+    PJ("2. Na dzie\u0144 bilansowy aktywa i pasywa wyra\u017cone w walutach obcych wycenia si\u0119 po kursie \u015brednim og\u0142oszonym przez NBP na ten dzie\u0144, zgodnie z art. 30 ust. 1 Ustawy.")
+    PJ("3. Ró\u017cnice kursowe (zrealizowane i niezrealizowane) odnosi si\u0119 odpowiednio na przychody finansowe (dodatnie) lub koszty finansowe (ujemne).")
+
+    if G("d_hfx"):
+        doc.add_heading("\u00a7 23. Rachunki walutowe", level=2)
+        cdm = {"FIFO": "FIFO", "LIFO": "LIFO", "Srednia wazona": "\u015bredniej wa\u017conej"}
+        cur = G("d_cur")
+        cur_list = ", ".join(cur) if isinstance(cur, list) and cur else "EUR, USD"
+        PJ("1. Jednostka prowadzi rachunki walutowe w nast\u0119puj\u0105cych walutach: " + cur_list + ".")
+        PJ("2. Rozchód \u015brodków pieni\u0119\u017cnych z rachunków walutowych wyceniany jest metod\u0105 " + cdm.get(G("d_fxd"), G("d_fxd")) + ".")
+        PJ("3. Stan \u015brodków pieni\u0119\u017cnych na rachunkach walutowych na dzie\u0144 bilansowy wycenia si\u0119 po kursie \u015brednim NBP z dnia bilansowego.")
+
+    # ═══════ VII. INWENTARYZACJA ═══════
+    doc.add_heading("VII. Inwentaryzacja", level=1)
+
+    doc.add_heading("\u00a7 24. Cel i zakres inwentaryzacji", level=2)
+    PJ("1. Inwentaryzacja przeprowadzana jest zgodnie z art. 26 i 27 Ustawy oraz Krajowym Standardem Rachunkowo\u015bci nr 1 dotycz\u0105cym inwentaryzacji.")
+    PJ("2. Celem inwentaryzacji jest ustalenie rzeczywistego stanu sk\u0142adników aktywów i pasywów oraz porównanie go ze stanem ksi\u0119gowym.")
+
+    doc.add_heading("\u00a7 25. Metody i terminy inwentaryzacji", level=2)
+    add_table(
+        ["Sk\u0142adnik", "Metoda", "Termin", "Cz\u0119stotliwo\u015b\u0107"],
+        [
+            ("\u015arodki pieni\u0119\u017cne w kasie", "Spis z natury", "31.12.", "Roczna"),
+            ("Druki \u015bcis\u0142ego zarachowania", "Spis z natury", "31.12.", "Roczna"),
+            ("Zapasy (towary, materia\u0142y)", "Spis z natury", "Q4 / 15.10\u201415.01", "Roczna"),
+            ("\u015arodki trwa\u0142e", "Spis z natury", "Q4", "Co 4 lata"),
+            ("\u015arodki pieni\u0119\u017cne na rachunkach", "Potwierdzenie salda", "31.12.", "Roczna"),
+            ("Nale\u017cno\u015bci i zobowi\u0105zania", "Potwierdzenie salda", "Q4", "Roczna"),
+            ("Pozosta\u0142e aktywa i pasywa", "Weryfikacja", "31.12.", "Roczna"),
+        ],
+        col_widths=[4.5, 3.5, 3.5, 3]
+    )
+
+    doc.add_heading("\u00a7 26. Komisja inwentaryzacyjna", level=2)
+    PJ("1. Inwentaryzacj\u0119 przeprowadza komisja inwentaryzacyjna powo\u0142ana zarz\u0105dzeniem kierownika jednostki.")
+    PJ("2. Komisja sporz\u0105dza protokó\u0142 inwentaryzacyjny zawieraj\u0105cy zestawienie ró\u017cnic inwentaryzacyjnych (nadwy\u017cek i niedoborów) wraz z wyja\u015bnieniem ich przyczyn.")
+    PJ("3. Rozliczenie ró\u017cnic inwentaryzacyjnych nast\u0119puje uchwa\u0142\u0105 lub decyzj\u0105 kierownika jednostki na podstawie protoko\u0142u komisji.")
+
+    # ═══════ VIII. OCHRONA DANYCH ═══════
+    doc.add_heading("VIII. System ochrony danych i ich zbiorów", level=1)
+
+    doc.add_heading("\u00a7 27. Zasady ochrony danych", level=2)
+    dpm = {
+        "Elektroniczna i fizyczna": "elektronicznej i fizycznej",
+        "Wylacznie elektroniczna": "wy\u0142\u0105cznie elektronicznej",
+        "Wylacznie fizyczna": "wy\u0142\u0105cznie fizycznej"
+    }
+    PJ("1. Ochrona danych rachunkowych realizowana jest w formie " + dpm.get(G("d_dp"), G("d_dp")) + ", zgodnie z art. 71-72 Ustawy.")
+    PJ("2. Jednostka zapewnia trwa\u0142o\u015b\u0107 zapisów ksi\u0119gowych, ich nienaruszalno\u015b\u0107, ochron\u0119 przed dost\u0119pem osób nieuprawnionych oraz przed utrat\u0105.")
+
+    doc.add_heading("\u00a7 28. Kopie zapasowe", level=2)
+    bkm = {"Codziennie": "codziennej", "Co tydzien": "tygodniowej", "Co miesiac": "miesi\u0119cznej"}
+    PJ("1. Kopie zapasowe danych ksi\u0119gowych sporz\u0105dzane s\u0105 z cz\u0119stotliwo\u015bci\u0105 " + bkm.get(G("d_bk"), G("d_bk")) + ", na no\u015bnikach zapewniaj\u0105cych trwa\u0142o\u015b\u0107 zapisu.")
+    PJ("2. Kopie zapasowe przechowywane s\u0105 w lokalizacji zewn\u0119trznej (poza siedzib\u0105 jednostki) lub na chronionym serwerze w chmurze, zapewniaj\u0105c odzyskanie danych w przypadku awarii systemu.")
+    PJ("3. Przeprowadzane s\u0105 okresowe testy odtwarzania danych z kopii zapasowych, nie rzadziej ni\u017c raz w roku.")
+
+    doc.add_heading("\u00a7 29. Kontrola dost\u0119pu", level=2)
+    if G("d_ac"):
+        PJ("1. Dost\u0119p do systemu ksi\u0119gowego zabezpieczony jest indywidualnymi loginami i has\u0142ami u\u017cytkowników.")
+        PJ("2. Has\u0142a zmieniane s\u0105 nie rzadziej ni\u017c co 90 dni i musz\u0105 spe\u0142nia\u0107 wymagania z\u0142o\u017cono\u015bci (minimum 8 znaków, w tym wielkie i ma\u0142e litery, cyfry oraz znaki specjalne).")
+        PJ("3. Uprawnienia u\u017cytkowników nadawane s\u0105 na zasadzie minimum koniecznego \u2014 wy\u0142\u0105cznie do funkcji i danych niezb\u0119dnych do wykonywania obowi\u0105zków.")
+    else:
+        PJ("1. Jednostka zapewnia odpowiedni poziom kontroli dost\u0119pu do danych rachunkowych zgodnie z opracowan\u0105 procedur\u0105 wewn\u0119trzn\u0105.")
+
+    doc.add_heading("\u00a7 30. Archiwizacja", level=2)
+    PJ("1. Dokumentacj\u0119 ksi\u0119gow\u0105 przechowuje si\u0119 przez okres " + str(G("d_ay")) + " lat, liczony od pocz\u0105tku roku nast\u0119puj\u0105cego po roku obrotowym, którego dane zbiory dotycz\u0105 (art. 74 Ustawy).")
+    PJ("2. Sprawozdania finansowe oraz roczne deklaracje podatkowe przechowuje si\u0119 trwale.")
+    PJ("3. Dokumenty pracownicze (akta osobowe, listy p\u0142ac) przechowywane s\u0105 przez okres wynikaj\u0105cy z przepisów odr\u0119bnych \u2014 10 lub 50 lat.")
 
     if G("d_ksef"):
+        doc.add_heading("\u00a7 31. Archiwizacja faktur KSeF", level=2)
         ksef_arch = G("d_ksef_archiwum")
         if "Wylacznie" in ksef_arch:
-            P("3. Archiwizacja faktur KSeF: faktury ustrukturyzowane przechowywane sa wylacznie w repozytorium KSeF prowadzonym przez Ministerstwo Finansow. Repozytorium KSeF spelnia wymogi art. 73 i 74 UoR w zakresie trwalosci zapisu i ochrony przed modyfikacja. Jednostka nie prowadzi rownoleglego archiwum faktur.")
+            PJ("1. Faktury ustrukturyzowane przechowywane s\u0105 wy\u0142\u0105cznie w repozytorium KSeF prowadzonym przez Ministerstwo Finansów. Repozytorium KSeF spe\u0142nia wymogi art. 73 i 74 Ustawy w zakresie trwa\u0142o\u015bci zapisu i ochrony przed modyfikacj\u0105.")
         elif "systemie FK" in ksef_arch and "nosnikach" not in ksef_arch:
-            P("3. Archiwizacja faktur KSeF: faktury ustrukturyzowane przechowywane sa rownolegle w repozytorium KSeF oraz w systemie FK jednostki. System FK przechowuje kopie faktur w formacie XML (schemat FA/2) wraz z numerem KSeF.")
+            PJ("1. Faktury ustrukturyzowane przechowywane s\u0105 równolegle w repozytorium KSeF oraz w systemie FK jednostki. System FK przechowuje kopie faktur w formacie XML (schemat FA(2)) wraz z numerem KSeF.")
         else:
-            P("3. Archiwizacja faktur KSeF: faktury ustrukturyzowane przechowywane sa w trzech lokalizacjach: repozytorium KSeF, system FK jednostki oraz na nosnikach zapasowych (zgodnie z procedura backupu). Zapewnia to pelna redundancje i ciaglosc dostepu do dokumentow.")
-        P("4. Okres przechowywania faktur KSeF: zgodnie z art. 74 UoR oraz art. 112 ustawy o VAT - co najmniej 5 lat, liczone od konca roku kalendarzowego, w ktorym uplynql termin platnosci podatku.")
+            PJ("1. Faktury ustrukturyzowane przechowywane s\u0105 w trzech lokalizacjach: repozytorium KSeF, system FK jednostki oraz na no\u015bnikach zapasowych \u2014 co zapewnia pe\u0142n\u0105 redundancj\u0119 i ci\u0105g\u0142o\u015b\u0107 dost\u0119pu do dokumentów.")
+        PJ("2. Okres przechowywania faktur KSeF: zgodnie z art. 74 Ustawy oraz art. 112 ustawy o VAT \u2014 co najmniej 5 lat, liczone od ko\u0144ca roku kalendarzowego, w którym up\u0142yn\u0105\u0142 termin p\u0142atno\u015bci podatku.")
 
-    doc.add_heading("VII. Zasady dodatkowe", level=1)
-    P("1. Przychody: zasada memorialowa." if "memorialowa" in G("d_rev") else "1. Przychody: zasada kasowa.")
-    P("2. Leasing: klasyfikacja bilansowa." if "bilansow" in G("d_ls") else "2. Leasing: klasyfikacja podatkowa.")
+    PJ("4. Osoba odpowiedzialna za system ochrony danych w jednostce: " + (G("d_rp") or "[imi\u0119 i nazwisko]") + ".")
+    PJ("5. Szczegó\u0142owy opis systemu ochrony danych, w tym procedury awaryjne, instrukcja post\u0119powania w przypadku incydentu, stanowi Za\u0142\u0105cznik nr 3 do niniejszej Polityki.")
 
-    doc.add_heading("VIII. Postanowienia koncowe", level=1)
-    P(f"1. Wchodzi w zycie: {eds}.")
-    P(f"2. Zatwierdzil(a): {G('d_ab') or 'kierownik jednostki'}.")
-    P("3. Zalaczniki: ZPK, opis systemu, system ochrony danych.")
+    # ═══════ IX. JPK I RAPORTOWANIE ═══════
+    doc.add_heading("IX. Raportowanie elektroniczne (JPK, KSeF)", level=1)
 
-    buf = io.BytesIO(); doc.save(buf); buf.seek(0); return buf
+    doc.add_heading("\u00a7 32. Jednolity Plik Kontrolny", level=2)
+    PJ("1. Jednostka udost\u0119pnia organom podatkowym Jednolite Pliki Kontrolne (JPK) zgodnie z wymaganiami ustawy z dnia 29 sierpnia 1997 r. \u2014 Ordynacja podatkowa oraz przepisów wykonawczych:")
+    add_table(
+        ["Struktura JPK", "Zakres", "Termin"],
+        [
+            ("JPK_VAT (JPK_V7M/V7K)", "Ewidencja VAT \u2014 rejestr sprzeda\u017cy i zakupu", "Miesi\u0119cznie / kwartalnie"),
+            ("JPK_KR", "Ksi\u0119gi rachunkowe", "Na \u017c\u0105danie organu"),
+            ("JPK_MAG", "Magazyn (przyj\u0119cia, wydania)", "Na \u017c\u0105danie organu"),
+            ("JPK_WB", "Wyci\u0105gi bankowe", "Na \u017c\u0105danie organu"),
+            ("JPK_FA", "Faktury VAT", "Na \u017c\u0105danie organu (od 2026 \u2014 przez KSeF)"),
+            ("JPK_CIT (od 2026)", "Ksi\u0119gi rachunkowe w nowej strukturze CIT", "Rocznie"),
+        ],
+        col_widths=[4, 8, 4]
+    )
+    PJ("2. Plan kont jednostki jest skonstruowany w sposób umo\u017cliwiaj\u0105cy automatyczne mapowanie zapisów ksi\u0119gowych na pozycje JPK_CIT od roku obrotowego 2026.")
+
+    # ═══════ X. ZASADY DODATKOWE ═══════
+    doc.add_heading("X. Zasady dodatkowe i polityki szczególne", level=1)
+
+    doc.add_heading("\u00a7 33. Ujmowanie przychodów", level=2)
+    if "memorialowa" in G("d_rev"):
+        PJ("1. Przychody ujmowane s\u0105 zgodnie z zasad\u0105 memoria\u0142ow\u0105 (art. 6 ust. 1 Ustawy), tj. w okresie, którego dotycz\u0105, niezale\u017cnie od terminu wp\u0142ywu \u015brodków pieni\u0119\u017cnych.")
+        PJ("2. Przychody ze sprzeda\u017cy produktów, towarów i us\u0142ug ujmuje si\u0119 w momencie:")
+        P("\u2022 dostarczenia produktu lub towaru kupuj\u0105cemu,", indent=False)
+        P("\u2022 wykonania us\u0142ugi lub jej etapu zgodnie z umow\u0105,", indent=False)
+        P("\u2022 gdy kwot\u0119 przychodu mo\u017cna w sposób wiarygodny okre\u015bli\u0107,", indent=False)
+        P("\u2022 gdy istnieje prawdopodobie\u0144stwo uzyskania korzy\u015bci ekonomicznych.", indent=False)
+    else:
+        PJ("1. Przychody ujmowane s\u0105 zgodnie z zasad\u0105 kasow\u0105, tj. w momencie otrzymania zap\u0142aty.")
+
+    doc.add_heading("\u00a7 34. Klasyfikacja umów leasingu", level=2)
+    if "bilansow" in G("d_ls"):
+        PJ("1. Umowy leasingu klasyfikowane s\u0105 zgodnie z przepisami bilansowymi (art. 3 ust. 4-6 Ustawy).")
+        PJ("2. Leasing finansowy ujmowany jest w aktywach jednostki korzystaj\u0105cej, z jednoczesnym uj\u0119ciem zobowi\u0105zania wobec finansuj\u0105cego.")
+        PJ("3. Leasing operacyjny ujmowany jest w kosztach okresu w wysoko\u015bci rat leasingowych przypadaj\u0105cych na ten okres.")
+    else:
+        PJ("1. Umowy leasingu klasyfikowane s\u0105 zgodnie z przepisami podatkowymi (art. 17a-17l ustawy o CIT).")
+        PJ("2. Przedmiot leasingu ujmowany jest w aktywach finansuj\u0105cego. U korzystaj\u0105cego raty leasingowe ujmowane s\u0105 jako koszt okresu.")
+
+    if G("d_prov"):
+        doc.add_heading("\u00a7 35. Rezerwy i rozliczenia mi\u0119dzyokresowe", level=2)
+        PJ("1. Jednostka tworzy rezerwy na znane ryzyko, gro\u017c\u0105ce straty oraz skutki innych zdarze\u0144, zgodnie z art. 35d Ustawy.")
+        PJ("2. Bierne rozliczenia mi\u0119dzyokresowe kosztów dokonywane s\u0105 zgodnie z art. 39 Ustawy w wysoko\u015bci prawdopodobnych zobowi\u0105za\u0144 przypadaj\u0105cych na bie\u017c\u0105cy okres sprawozdawczy.")
+        PJ("3. Czynne rozliczenia mi\u0119dzyokresowe kosztów dotycz\u0105 wydatków poniesionych w bie\u017c\u0105cym okresie, a obci\u0105\u017caj\u0105cych koszty okresów przysz\u0142ych.")
+
+    if G("d_dt"):
+        doc.add_heading("\u00a7 36. Podatek odroczony", level=2)
+        if G("d_small") or G("d_micro"):
+            PJ("1. Jednostka, jako jednostka ma\u0142a/mikro, korzysta z uproszczenia polegaj\u0105cego na zaniechaniu ustalania aktywów i rezerw z tytu\u0142u odroczonego podatku dochodowego, zgodnie z art. 37 ust. 10 Ustawy.")
+        else:
+            PJ("1. Jednostka ustala aktywa i rezerwy z tytu\u0142u odroczonego podatku dochodowego, zgodnie z art. 37 Ustawy.")
+            PJ("2. Aktywa z tytu\u0142u odroczonego podatku ustala si\u0119 w wysoko\u015bci kwoty przewidzianej do odliczenia od podatku dochodowego w przysz\u0142o\u015bci.")
+            PJ("3. Rezerwy z tytu\u0142u odroczonego podatku tworzy si\u0119 w wysoko\u015bci kwoty podatku do zap\u0142acenia w przysz\u0142o\u015bci.")
+
+    doc.add_heading("\u00a7 37. Rachunek przep\u0142ywów pieni\u0119\u017cnych", level=2)
+    if G("d_small") or G("d_micro"):
+        PJ("1. Jednostka, jako jednostka ma\u0142a/mikro, jest zwolniona z obowi\u0105zku sporz\u0105dzania rachunku przep\u0142ywów pieni\u0119\u017cnych.")
+    else:
+        cf = "po\u015bredni\u0105" if "posrednia" in G("d_cf") else "bezpo\u015bredni\u0105"
+        PJ("1. Rachunek przep\u0142ywów pieni\u0119\u017cnych sporz\u0105dzany jest metod\u0105 " + cf + ", zgodnie z Za\u0142\u0105cznikiem nr 1 do Ustawy oraz KSR 1.")
+
+    # ═══════ XI. POSTANOWIENIA KOŃCOWE ═══════
+    doc.add_heading("XI. Postanowienia ko\u0144cowe", level=1)
+
+    doc.add_heading("\u00a7 38. Wej\u015bcie w \u017cycie", level=2)
+    PJ("1. Niniejsza Polityka Rachunkowo\u015bci wchodzi w \u017cycie z dniem " + eds + " i obowi\u0105zuje do czasu jej zmiany.")
+    PJ("2. Polityka obowi\u0105zuje od roku obrotowego rozpoczynaj\u0105cego si\u0119 w dniu wej\u015bcia w \u017cycie.")
+
+    doc.add_heading("\u00a7 39. Zmiany Polityki", level=2)
+    PJ("1. Wszelkie zmiany niniejszej Polityki wymagaj\u0105 formy pisemnej i zatwierdzenia przez " + (G("d_ab") or "kierownika jednostki") + ".")
+    PJ("2. Zmiany Polityki dokonuje si\u0119 z zachowaniem zasady ci\u0105g\u0142o\u015bci (art. 5 ust. 1 Ustawy). Skutki zmian odnosi si\u0119 na kapita\u0142 w\u0142asny, je\u015bli wymagaj\u0105 tego okoliczno\u015bci (KSR 7).")
+    PJ("3. Zmiany wprowadza si\u0119 w drodze aneksu do niniejszej Polityki, ze wskazaniem daty wprowadzenia i przyczyny zmiany.")
+
+    doc.add_heading("\u00a7 40. Odpowiedzialno\u015b\u0107", level=2)
+    PJ("1. Za przestrzeganie zasad (polityki) rachunkowo\u015bci odpowiada kierownik jednostki, zgodnie z art. 4 ust. 5 Ustawy.")
+    PJ("2. Pracownicy dzia\u0142u ksi\u0119gowo\u015bci oraz inne osoby uczestnicz\u0105ce w procesach ksi\u0119gowych zobowi\u0105zane s\u0105 do przestrzegania niniejszej Polityki.")
+
+    # ═══════ ZAŁĄCZNIKI ═══════
+    doc.add_heading("Za\u0142\u0105czniki", level=1)
+    PJ("Integraln\u0105 cz\u0119\u015bci\u0105 niniejszej Polityki Rachunkowo\u015bci s\u0105 nast\u0119puj\u0105ce za\u0142\u0105czniki:")
+    add_table(
+        ["Nr", "Nazwa za\u0142\u0105cznika", "Opis"],
+        [
+            ("1", "Zak\u0142adowy Plan Kont", "Wykaz kont ksi\u0119gi g\u0142ównej i ksi\u0105g pomocniczych wraz z opisem"),
+            ("2", "Opis systemu informatycznego", "Wykaz programów ksi\u0119gowych wraz z dokumentacj\u0105"),
+            ("3", "System ochrony danych", "Procedury ochrony, kopii zapasowych i odzyskiwania danych"),
+            ("4", "Instrukcja obiegu dokumentów", "Zasady obiegu dowodów ksi\u0119gowych w jednostce"),
+            ("5", "Instrukcja inwentaryzacyjna", "Procedury i terminy inwentaryzacji"),
+            ("6", "Wykaz osób upowa\u017cnionych", "Pracownicy uprawnieni do zatwierdzania dowodów ksi\u0119gowych"),
+        ],
+        col_widths=[1.5, 5, 9.5]
+    )
+
+    # Podpisy
+    doc.add_paragraph()
+    doc.add_paragraph()
+    PJ("Sporz\u0105dzi\u0142(a):                                              Zatwierdzi\u0142(a):", indent=False)
+    doc.add_paragraph()
+    PJ("____________________________                __________________________________", indent=False)
+    PJ("            (G\u0142ówny Ksi\u0119gowy)                                  " + (G("d_ab") or "(Kierownik jednostki)"), indent=False)
+    doc.add_paragraph()
+    PC("Data: " + ads, 10, c="666666")
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf
 
 
 # ══════════════════════════════════════════════════════

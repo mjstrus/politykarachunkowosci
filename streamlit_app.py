@@ -42,7 +42,8 @@ for k, v in dict(d_name="", d_form=0, d_nip="", d_krs="", d_regon="", d_addr="",
                   d_ksef=True, d_ksef_moment="Data wystawienia w KSeF",
                   d_ksef_korekty="Nota korygujaca w KSeF",
                   d_ksef_archiwum="Wylacznie w KSeF",
-                  d_ksef_system="Zintegrowany z systemem FK").items():
+                  d_ksef_system="Zintegrowany z systemem FK",
+                  d_pol_status="Pierwsza polityka (od poczatku dzialalnosci)").items():
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -977,6 +978,24 @@ def gen_docx():
     )
     PJ("2. Plan kont jednostki jest skonstruowany w sposób umo\u017cliwiaj\u0105cy automatyczne mapowanie zapisów ksi\u0119gowych na pozycje JPK_CIT od roku obrotowego 2026.")
 
+    doc.add_heading("§ 32A. Krajowy Standard Raportowania (KSR) — JPK_CIT od roku 2026", level=2)
+    PJ("1. Od roku obrotowego 2026 jednostka obligatoryjnie przesyła do Krajowej Administracji Skarbowej Jednolity Plik Kontrolny zawierający dane z ksiąg rachunkowych (JPK_CIT) w nowej strukturze zdefiniowanej w art. 86 ustawy o podatku dochodowym od osób prawnych.")
+    PJ("2. JPK_CIT 2026 obejmuje następujące komponenty:")
+    add_table(
+        ["Moduł", "Zawartość", "Termin przesłania"],
+        [
+            ("Dane jednostki", "Numer PESEL/REGON, forma prawna, adres siedziby", "Rocznie"),
+            ("Rachunek Zysków i Strat", "Przychody, koszty, wynik finansowy", "31 marca/90 dni"),
+            ("Bilans", "Aktywa, pasywa, razem suma bilansowa", "31 marca/90 dni"),
+            ("Wyceny międzyokresowe", "Aktywa odroczone, rezerwy", "31 marca/90 dni"),
+            ("Związki kontrolne", "Informacje o podmiotach powiązanych", "31 marca/90 dni"),
+            ("Pozycje szczególne", "Informacje o działalności i zmianach", "31 marca/90 dni"),
+        ],
+        col_widths=[2.5, 8, 4.5]
+    )
+    PJ("3. Jednostka gwarantuje mapowanie każdego konta na pozycje JPK_CIT, umożliwiające automatyczną konwersję danych z ksiąg rachunkowych.")
+    PJ("4. Nowa struktura JPK_CIT 2026 wymaga dostosowania systemu informatycznego zgodnie z komunikatami Ministra Finansów.")
+
     # ═══════ X. ZASADY DODATKOWE ═══════
     doc.add_heading("X. Zasady dodatkowe i polityki szczególne", level=1)
 
@@ -1023,7 +1042,19 @@ def gen_docx():
         PJ("1. Rachunek przep\u0142ywów pieni\u0119\u017cnych sporz\u0105dzany jest metod\u0105 " + cf + ", zgodnie z Za\u0142\u0105cznikiem nr 1 do Ustawy oraz KSR 1.")
 
     # ═══════ XI. POSTANOWIENIA KOŃCOWE ═══════
-    doc.add_heading("XI. Postanowienia ko\u0144cowe", level=1)
+    doc.add_heading("XI. Postanowienia końcowe", level=1)
+
+    if "zmiana" in G("d_pol_status").lower():
+        doc.add_heading("§ 37A. Procedura wprowadzenia zmian polityki", level=2)
+        PJ("1. Zmiana niniejszej Polityki Rachunkowości wymaga podjęcia uchwały na walnym zgromadzeniu wspólników jednostki.")
+        PJ("2. Postępowanie przy wprowadzeniu zmian Polityki:")
+        P("• zwołanie zwyczajnego lub nadzwyczajnego walnego zgromadzenia wspólników (w terminie i trybie wynikającym z przepisów ustawy o spółkach kapitałowych),", indent=False)
+        P("• przedstawienie na walnym zgromadzeniu projektu zmian Polityki Rachunkowości z uzasadnieniem przyczyn zmian,", indent=False)
+        P("• podjęcie przez wspólników uchwały w sprawie zmiany Polityki Rachunkowości (zwykłą większością głosów),", indent=False)
+        P("• podpisanie zmienionej Polityki lub jej aneksu przez upoważnione osoby (kierownika jednostki),", indent=False)
+        P("• udokumentowanie uchwały w protokóle walnego zgromadzenia wspólników.", indent=False)
+        PJ("3. Uchwała walna stanowi podstawę prawną dla wdrożenia zmian Polityki Rachunkowości w życiu jednostki.")
+        PJ("4. Załączenie kopii uchwały do akt jednostki i jej przechowywanie jest obowiązkowe.")
 
     doc.add_heading("\u00a7 38. Wej\u015bcie w \u017cycie", level=2)
     PJ("1. Niniejsza Polityka Rachunkowo\u015bci wchodzi w \u017cycie z dniem " + eds + " i obowi\u0105zuje do czasu jej zmiany.")
@@ -1054,7 +1085,52 @@ def gen_docx():
         col_widths=[1.5, 5, 9.5]
     )
 
-    # Podpisy
+    # ═══════ ZALECENIA WDROŻENIA ═══════
+    doc.add_paragraph()
+    doc.add_heading("Rekomendacje wdrożenia Polityki Rachunkowości", level=1)
+    
+    if "zmiana" in G("d_pol_status").lower():
+        doc.add_heading("Procedura wprowadzenia zmian Polityki", level=2)
+        PJ("Aby wprowadzić zmienioną Politykę Rachunkowości w życie jednostki, niezbędne jest wykonanie następujących czynności w podanej kolejności:")
+        add_table(
+            ["Lp.", "Czynność", "Odpowiedzialny", "Termin"],
+            [
+                ("1.", "Przygotowanie projektu zmian Polityki z uzasadnieniem", "Kierownik / Księgowy", "Przed walnym zgromadzeniem"),
+                ("2.", "Zwołanie zwyczajnego/nadzwyczajnego walnego zgromadzenia wspólników", "Kierownik / Zarząd", "Zgodnie z umową spółki"),
+                ("3.", "Przedstawienie projektu zmian na walnym zgromadzeniu", "Kierownik / Prokurenci", "W trakcie walnego zgromadzenia"),
+                ("4.", "Podjęcie uchwały w sprawie zmiany Polityki (zwykła większość głosów)", "Wspólnicy", "Podczas walnego zgromadzenia"),
+                ("5.", "Podpisanie zmienionej Polityki przez upoważnione osoby", "Kierownik / Wspólnicy (jeśli wymagane)", "Po podjęciu uchwały"),
+                ("6.", "Udokumentowanie uchwały w protokóle WZ", "Sekretarz / Notariusz", "Niezwłocznie po zgromadzeniu"),
+                ("7.", "Przechowywanie kopii uchwały w aktach jednostki", "Księgowy", "Permanentnie"),
+                ("8.", "Wdrożenie zmian w systemie informatycznym", "IT / Księgowy", "Przed datą wejścia w życie"),
+            ],
+            col_widths=[0.7, 5.5, 3.5, 2.8]
+        )
+        PJ("WAŻNE: Zmiana Polityki Rachunkowości bez formalnego podjęcia uchwały przez walne zgromadzenie wspólników stanowi naruszenie przepisów ustawy o rachunkowości i może być podstawą zastrzeżeń organów podatkowych.")
+    else:
+        doc.add_heading("Procedura wprowadzenia Polityki (pierwsze wdrożenie)", level=2)
+        PJ("Aby wprowadzić Politykę Rachunkowości w życie jednostki od dnia jej wejścia, niezbędne jest wykonanie następujących czynności:")
+        add_table(
+            ["Lp.", "Czynność", "Odpowiedzialny", "Termin"],
+            [
+                ("1.", "Zatwierdzenie Polityki przez kierownika jednostki", "Kierownik", "Data zatwierdzenia"),
+                ("2.", "Powiadomienie pracowników działu księgowości o Polityce", "Kierownik / Księgowy", "Przed datą wejścia w życie"),
+                ("3.", "Dostosowanie Zakładowego Planu Kont w systemie", "Księgowy / IT", "Przed datą wejścia w życie"),
+                ("4.", "Wdrożenie procedur obiegu dokumentów", "Kierownik / Księgowy", "Przed datą wejścia w życie"),
+                ("5.", "Testy funkcjonowania systemu zgodnie z Polityką", "Księgowy / IT", "Przed datą wejścia w życie"),
+                ("6.", "Przechowywanie Polityki w aktach jednostki", "Księgowy", "Permanentnie"),
+                ("7.", "Szkolenie personelu z wymogów Polityki", "Kierownik / Księgowy", "Po wejściu w życie / Roczne"),
+            ],
+            col_widths=[0.7, 5.5, 3.5, 2.8]
+        )
+    
+    doc.add_heading("Czasochłonność wdrożenia", level=2)
+    PJ("Szacunkowy czas realizacji procedury wdrażania zmian/pierwszego wdrożenia Polityki wynosi 2–4 tygodnie w zależności od złożoności jednostki i czasu zwołania walnego zgromadzenia wspólników (w przypadku zmian).")
+    
+    doc.add_heading("Wsparcie w interpretacji", level=2)
+    PJ("W razie wątpliwości interpretacyjnych dotyczących postanowień niniejszej Polityki, a zwłaszcza jej zgodności z aktualnymi przepisami ustawy o rachunkowości i podatkowymi, rekomenduje się konsultację ze specjalistą z zakresu rachunkowości lub doradcą podatkowym.")
+
+        # Podpisy
     doc.add_paragraph()
     doc.add_paragraph()
     PJ("Sporz\u0105dzi\u0142(a):                                              Zatwierdzi\u0142(a):", indent=False)
@@ -1230,6 +1306,16 @@ def step_6():
     st.session_state.d_dt = st.checkbox("Podatek odroczony", value=G("d_dt"), key="wdt")
     if not (G("d_small") or G("d_micro")):
         st.session_state.d_cf = st.radio("Przeplywy pieniezne", ["Metoda posrednia", "Metoda bezposrednia"], key="wcf")
+    st.markdown("---")
+    st.markdown("**Status polityki rachunkowosci**")
+    st.session_state.d_pol_status = st.radio(
+        "Czy to pierwsza polityka rachunkowosci (od poczatku dzialalnosci) czy zmiana istniejaccej?",
+        ["Pierwsza polityka (od poczatku dzialalnosci)",
+         "Zmiana istniejaccej polityki (wymaga uchwaly WZ)"],
+        key="wpol_status",
+        help="Zmiana polityki wymaga podjecia uchwaly na walnym zgromadzeniu wspolnikow"
+    )
+    st.markdown("---")
     st.markdown("**Zatwierdzenie**")
     c1, c2 = st.columns(2)
     with c1: st.session_state.d_adate = st.date_input("Data zatwierdzenia", value=G("d_adate"), key="wad")
